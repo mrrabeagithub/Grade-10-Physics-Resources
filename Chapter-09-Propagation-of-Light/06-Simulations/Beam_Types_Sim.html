@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Light Beams Simulation (By Rabih A.G.)</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        /* Base styles and Dark Mode Transitions */
+        body {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark body {
+            background-color: #1a202c; /* Tailwind gray-900 */
+            color: #e2e8f0; /* Tailwind gray-200 */
+        }
+        .dark .bg-white {
+            background-color: #2d3748 !important; /* Tailwind gray-800 */
+            color: #e2e8f0 !important;
+            border-color: #4a5568 !important;
+        }
+        .dark .text-gray-800 { color: #e2e8f0 !important; }
+        .dark .text-gray-600 { color: #cbd5e0 !important; }
+        .dark .border-gray-200 { border-color: #4a5568 !important; }
+        
+        canvas {
+            background-color: #000; /* Black background for optics canvas */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-6 min-h-screen">
+
+    <div class="max-w-4xl mx-auto">
+        <!-- Header & Controls -->
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-3xl font-bold">Propagation of Light Beams</h1>
+                <p class="text-lg text-gray-600 mt-1">Grade 10 Physics • <span class="font-semibold text-blue-600 dark:text-blue-400">By Rabih A.G.</span></p>
+            </div>
+            
+            <!-- Dark Mode Toggle -->
+            <button id="theme_toggle_button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+                <!-- Sun Icon (Yellowish/Golden) -->
+                <svg id="sun_icon" class="hidden w-8 h-8" style="color: #FFD700;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 2.22a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-3.07 4.93a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm-4.22-2.22a1 1 0 01-1.415 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM2 10a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm3.07-4.93a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 5a5 5 0 100 10 5 5 0 000-10z" clip-rule="evenodd" />
+                </svg>
+                <!-- Moon Icon (Silver) -->
+                <svg id="moon_icon" class="w-8 h-8" style="color: #C0C0C0;" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="space-y-6">
+            
+            <!-- Simulation Canvas -->
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm relative">
+                <canvas id="simulation_canvas" width="800" height="400" class="w-full h-auto"></canvas>
+                    <div class="absolute top-6 left-6 text-white bg-black/50 px-3 py-1 rounded">
+                        Beam Type: <span id="display_beam_type" class="font-bold text-yellow-400">Parallel</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h2 class="text-xl font-bold mb-4">Physics Parameters</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Beam Type</label>
+                            <select id="beam_selector" class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                                <option value="parallel">Parallel Beam</option>
+                                <option value="convergent">Convergent Beam</option>
+                                <option value="divergent">Divergent Beam</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Refractive Index (\(n\))</label>
+                            <input type="range" id="refractive_index_slider" min="1" max="3" step="0.1" value="1" class="w-full">
+                            <div class="text-sm mt-1">Value: <span id="n_value">1.0</span> (Speed \(v = \frac{c}{n}\))</div>
+                        </div>
+                        <div>
+                            <button id="reset_button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full transition">
+                                Fire Photons
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. UI AND THEME CONTROLS (Dark Mode)
+        // ==========================================
+        const theme_toggle_button = document.getElementById('theme_toggle_button');
+        const sun_icon = document.getElementById('sun_icon');
+        const moon_icon = document.getElementById('moon_icon');
+        const body_element = document.body;
+
+        theme_toggle_button.addEventListener('click', () => {
+            body_element.classList.toggle('dark');
+            if (body_element.classList.contains('dark')) {
+                sun_icon.classList.remove('hidden');
+                moon_icon.classList.add('hidden');
+            } else {
+                sun_icon.classList.add('hidden');
+                moon_icon.classList.remove('hidden');
+            }
+        });
+
+        // ==========================================
+        // 2. PHYSICS CONSTANTS & VARIABLES
+        // ==========================================
+        // Using verbose, highly descriptive variable names as requested by the Pedagogy guidelines.
+        const maximum_speed_of_light = 500; // Scaled pixel representation of 'c'
+        let current_refractive_index = 1.0;
+        let global_simulation_time = 0;
+        const time_step = 0.016; // Approximately 60 FPS (1/60)
+        
+        // Define the state array to hold our photon particles
+        let active_photons_array = [];
+
+        // ==========================================
+        // 3. PHOTON KINEMATICS CLASS
+        // ==========================================
+        class PhotonParticle {
+            constructor(initial_position_x, initial_position_y, initial_velocity_x, initial_velocity_y) {
+                this.position_x = initial_position_x;
+                this.position_y = initial_position_y;
+                
+                this.velocity_x = initial_velocity_x;
+                this.velocity_y = initial_velocity_y;
+                
+                // Acceleration is strictly zero in homogeneous uniform medium
+                this.acceleration_x = 0;
+                this.acceleration_y = 0;
+
+                // For tracing the path
+                this.history_of_positions = [];
+            }
+
+            update_state_using_symplectic_euler(dt) {
+                // RECORD HISTORY for drawing the continuous beam
+                this.history_of_positions.push({ x: this.position_x, y: this.position_y });
+
+                // CRITICAL DIRECTIVE: Use Semi-Implicit Euler (Symplectic)
+                // Even though acceleration is zero here, we must formulate the physics engine properly.
+                
+                // 1. Update Velocity based on current acceleration
+                this.velocity_x = this.velocity_x + this.acceleration_x * dt;
+                this.velocity_y = this.velocity_y + this.acceleration_y * dt;
+
+                // 2. Update Position based on newly calculated velocity (This defines Symplectic Euler)
+                this.position_x = this.position_x + this.velocity_x * dt;
+                this.position_y = this.position_y + this.velocity_y * dt;
+            }
+
+            draw_onto_canvas(context) {
+                // Draw the beam trail
+                context.beginPath();
+                context.strokeStyle = "rgba(255, 215, 0, 0.6)"; // Golden yellow laser
+                context.lineWidth = 3;
+                if (this.history_of_positions.length > 0) {
+                    context.moveTo(this.history_of_positions[0].x, this.history_of_positions[0].y);
+                    for (let i = 1; i < this.history_of_positions.length; i++) {
+                        context.lineTo(this.history_of_positions[i].x, this.history_of_positions[i].y);
+                    }
+                }
+                context.lineTo(this.position_x, this.position_y);
+                context.stroke();
+
+                // Draw the leading photon "head"
+                context.beginPath();
+                context.fillStyle = "#ffffff";
+                context.arc(this.position_x, this.position_y, 4, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+
+        // ==========================================
+        // 4. SIMULATION LOGIC & INITIALIZATION
+        // ==========================================
+        const simulation_canvas = document.getElementById('simulation_canvas');
+        const simulation_context = simulation_canvas.getContext('2d');
+        
+        let animation_frame_id;
+
+        function initialize_simulation() {
+            // Clear previous state
+            active_photons_array = [];
+            global_simulation_time = 0;
+            
+            // Read UI states
+            const beam_type = document.getElementById('beam_selector').value;
+            current_refractive_index = parseFloat(document.getElementById('refractive_index_slider').value);
+            document.getElementById('display_beam_type').innerText = beam_type.charAt(0).toUpperCase() + beam_type.slice(1);
+            
+            const effective_speed = maximum_speed_of_light / current_refractive_index;
+            const number_of_rays = 7;
+            const canvas_height_center = simulation_canvas.height / 2;
+            const ray_spacing = 30;
+
+            // Generate rays based on Grade 10 definitions of light beam types
+            for (let i = 0; i < number_of_rays; i++) {
+                let start_y = canvas_height_center + (i - Math.floor(number_of_rays/2)) * ray_spacing;
+                let start_x = 50;
+                
+                let vel_x = effective_speed;
+                let vel_y = 0;
+
+                if (beam_type === 'convergent') {
+                    // Rays converge to a focal point
+                    let focal_point_x = 650;
+                    let focal_point_y = canvas_height_center;
+                    
+                    let delta_x = focal_point_x - start_x;
+                    let delta_y = focal_point_y - start_y;
+                    let distance = Math.sqrt(delta_x*delta_x + delta_y*delta_y);
+                    
+                    vel_x = (delta_x / distance) * effective_speed;
+                    vel_y = (delta_y / distance) * effective_speed;
+
+                } else if (beam_type === 'divergent') {
+                    // Rays diverge from a source point
+                    start_x = 100;
+                    start_y = canvas_height_center; // All start at same source
+                    
+                    let target_y = canvas_height_center + (i - Math.floor(number_of_rays/2)) * ray_spacing * 2;
+                    let target_x = 700;
+                    
+                    let delta_x = target_x - start_x;
+                    let delta_y = target_y - start_y;
+                    let distance = Math.sqrt(delta_x*delta_x + delta_y*delta_y);
+                    
+                    vel_x = (delta_x / distance) * effective_speed;
+                    vel_y = (delta_y / distance) * effective_speed;
+                }
+
+                let new_photon = new PhotonParticle(start_x, start_y, vel_x, vel_y);
+                active_photons_array.push(new_photon);
+            }
+        }
+
+        // Main Physics Loop
+        function execute_simulation_step() {
+            // Clear canvas (we use a slight transparency for a trailing effect, though rays draw their own history)
+            simulation_context.fillStyle = "rgba(0, 0, 0, 1)";
+            simulation_context.fillRect(0, 0, simulation_canvas.width, simulation_canvas.height);
+
+            // Draw optics grid / lines
+            simulation_context.strokeStyle = "#333";
+            simulation_context.lineWidth = 1;
+            simulation_context.beginPath();
+            simulation_context.moveTo(0, simulation_canvas.height / 2);
+            simulation_context.lineTo(simulation_canvas.width, simulation_canvas.height / 2);
+            simulation_context.stroke();
+
+            // Update & Draw Particles
+            for (let photon of active_photons_array) {
+                // Apply Semi-Implicit Euler
+                photon.update_state_using_symplectic_euler(time_step);
+                photon.draw_onto_canvas(simulation_context);
+            }
+
+            global_simulation_time += time_step;
+
+            // Continue loop if not off-screen
+            let reference_photon = active_photons_array[Math.floor(active_photons_array.length / 2)];
+            if (reference_photon && reference_photon.position_x < simulation_canvas.width + 100) {
+                animation_frame_id = requestAnimationFrame(execute_simulation_step);
+            }
+        }
+
+        // ==========================================
+        // 6. EVENT LISTENERS
+        // ==========================================
+        document.getElementById('reset_button').addEventListener('click', () => {
+            cancelAnimationFrame(animation_frame_id);
+            initialize_simulation();
+            execute_simulation_step();
+        });
+
+        document.getElementById('refractive_index_slider').addEventListener('input', (e) => {
+            document.getElementById('n_value').innerText = parseFloat(e.target.value).toFixed(1);
+        });
+
+        // Initialize Everything on Load
+        window.onload = () => {
+            // Render KaTeX after DOM is fully loaded to prevent 'No element provided' error
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, { 
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true}, 
+                        {left: '\\(', right: '\\)', display: false}
+                    ] 
+                });
+            }
+            initialize_simulation();
+            execute_simulation_step();
+        };
+
+    </script>
+</body>
+</html>

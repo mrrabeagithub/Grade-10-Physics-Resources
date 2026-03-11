@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Propagation of Light - Interactive Lab</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Chosen Palette: Luminous Slate & Amber Accent -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive "Light Lab" dashboard. Rather than a linear document, it uses a sidebar navigation system to chunk the Source Report into four distinct, task-oriented modules: 1. Propagation, 2. Sources, 3. Beams, 4. Images. This structure is chosen because it transforms passive reading into an active discovery process. Users select a concept, read the contextual summary, and immediately interact with a visualization that demonstrates the physics principle, reinforcing understanding through cause-and-effect interaction. -->
+    <!-- Visualization & Content Choices: 
+        1. Rectilinear Propagation -> Goal: Inform/Change -> Method: CSS-based interactive diagram -> Interaction: Buttons toggle Reflection/Refraction/Absorption states -> Justification: Tangibly demonstrates abstract interactions without heavy libraries. NO SVG.
+        2. Sources of Light -> Goal: Compare -> Method: Chart.js Bar Chart -> Interaction: Hover tooltips -> Justification: Visually separates primary (emission) vs secondary (reflection) sources. NO SVG.
+        3. Beams vs Rays -> Goal: Organize/Change -> Method: Chart.js Scatter/Line Chart -> Interaction: Buttons update dataset coordinates -> Justification: Mathematical representation of parallel, converging, and diverging rays on a Cartesian plane. NO SVG.
+        4. Images & Systems -> Goal: Compare -> Method: Interactive HTML/Tailwind Grid Cards -> Interaction: Click to flip/reveal details -> Justification: Clearly contrasts Real vs Virtual and Mirrors vs Lenses through direct juxtaposition. NO SVG.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 40vh;
+            max-height: 400px;
+            min-height: 300px;
+        }
+
+        .ray-diagram-box {
+            position: relative;
+            width: 100%;
+            height: 300px;
+            background: #1e293b;
+            overflow: hidden;
+            border-radius: 0.5rem;
+        }
+
+        .ray-line {
+            position: absolute;
+            height: 4px;
+            background: #f59e0b;
+            top: 50%;
+            left: 0;
+            transform-origin: left center;
+            transition: all 0.5s ease-in-out;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+
+        .obstacle {
+            position: absolute;
+            width: 10px;
+            height: 100%;
+            background: #cbd5e1;
+            right: 30%;
+            top: 0;
+            transition: background 0.3s;
+        }
+
+        .flip-card {
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .flip-card.active .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+        }
+
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white shadow-sm border-b border-slate-200 z-10 flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-full bg-amber-400 border-4 border-amber-200 shadow-sm flex items-center justify-center font-bold text-white text-xs">&#9728;</div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Optics<span class="text-amber-500">Lab</span></h1>
+            </div>
+            <div class="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">Grade 10 Physics</div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full">
+        
+        <aside class="w-64 bg-white border-r border-slate-200 flex-shrink-0 overflow-y-auto hidden md:block">
+            <nav class="p-4 space-y-2" id="nav-menu">
+                <button data-target="module-propagation" class="nav-btn w-full text-left px-4 py-3 rounded-lg bg-amber-50 text-amber-700 font-semibold transition-colors flex justify-between items-center">
+                    1. Propagation
+                    <span class="text-amber-500">&#10095;</span>
+                </button>
+                <button data-target="module-sources" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors flex justify-between items-center">
+                    2. Light Sources
+                    <span class="text-slate-400 opacity-0 transition-opacity">&#10095;</span>
+                </button>
+                <button data-target="module-beams" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors flex justify-between items-center">
+                    3. Beams & Rays
+                    <span class="text-slate-400 opacity-0 transition-opacity">&#10095;</span>
+                </button>
+                <button data-target="module-images" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors flex justify-between items-center">
+                    4. Optical Systems
+                    <span class="text-slate-400 opacity-0 transition-opacity">&#10095;</span>
+                </button>
+            </nav>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50" id="main-content">
+            
+            <section id="module-propagation" class="module-section block">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Rectilinear Propagation</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        The fundamental rule of optics: In a homogeneous, transparent medium, light always travels in straight lines. This explains shadows and why we cannot see around corners.
+                    </p>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-800">Light Interactions Interactive Simulator</h3>
+                        <p class="text-sm text-slate-500 mb-4">Light continues in a straight line forever unless it interacts with an object. Select an interaction type below to observe the behavior.</p>
+                        
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            <button onclick="setInteraction('reflection')" class="px-4 py-2 bg-slate-800 text-white rounded-md hover:bg-slate-700 transition">Reflection</button>
+                            <button onclick="setInteraction('refraction')" class="px-4 py-2 bg-slate-800 text-white rounded-md hover:bg-slate-700 transition">Refraction</button>
+                            <button onclick="setInteraction('absorption')" class="px-4 py-2 bg-slate-800 text-white rounded-md hover:bg-slate-700 transition">Absorption</button>
+                        </div>
+
+                        <div class="ray-diagram-box">
+                            <div class="obstacle" id="sim-obstacle"></div>
+                            <div class="ray-line" id="sim-ray-incident" style="width: 70%;"></div>
+                            <div class="ray-line" id="sim-ray-outcome" style="width: 0%; left: 70%;"></div>
+                        </div>
+                        
+                        <div class="mt-4 p-4 bg-amber-50 text-amber-900 rounded-lg border border-amber-100 min-h-[5rem]" id="sim-explanation">
+                            <strong>Awaiting Interaction...</strong> Select a button above.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="module-sources" class="module-section hidden">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Sources of Light</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        To see anything, light must enter our eyes. Objects are classified by how they provide that light. This section compares objects that generate light versus those that merely reflect it.
+                    </p>
+
+                    <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-amber-400">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">Luminous Objects</h3>
+                            <p class="text-slate-600 mb-4 text-sm">Primary Sources</p>
+                            <ul class="space-y-2 text-slate-700">
+                                <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">&#10003;</span> Generate and emit their own light.</li>
+                                <li class="flex items-center gap-2"><span class="text-amber-500 font-bold">&#10003;</span> Examples: The Sun, a lightbulb, a candle flame.</li>
+                            </ul>
+                        </div>
+                        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-slate-400">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">Illuminated Objects</h3>
+                            <p class="text-slate-600 mb-4 text-sm">Secondary / Non-luminous Sources</p>
+                            <ul class="space-y-2 text-slate-700">
+                                <li class="flex items-center gap-2"><span class="text-slate-400 font-bold">&#10003;</span> Do not produce their own light.</li>
+                                <li class="flex items-center gap-2"><span class="text-slate-400 font-bold">&#10003;</span> Visible because they <em>reflect</em> light into our eyes.</li>
+                                <li class="flex items-center gap-2"><span class="text-slate-400 font-bold">&#10003;</span> Examples: The Moon, a mirror, paper.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-slate-800">Light Emission vs Reflection Profile</h3>
+                        <p class="text-sm text-slate-500 mb-6">Theoretical relative intensity. Luminous objects emit high energy, while illuminated objects only reflect a portion of received ambient light.</p>
+                        <div class="chart-container">
+                            <canvas id="sourcesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="module-beams" class="module-section hidden">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Light Rays vs. Light Beams</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        Because light travels in straight lines, we use geometric lines to study it. A <strong>Light Ray</strong> is a single line with an arrowhead. A <strong>Light Beam</strong> is a bundle of rays traveling together.
+                    </p>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                            <div>
+                                <h3 class="text-xl font-semibold text-slate-800">Beam Trajectory Visualizer</h3>
+                                <p class="text-sm text-slate-500">Select a beam type to visualize the ray paths over distance.</p>
+                            </div>
+                            <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                <button onclick="updateBeamChart('cylindrical')" class="px-3 py-1.5 text-sm font-medium rounded-md bg-white shadow-sm text-slate-800 transition beam-btn active" id="btn-cylindrical">Cylindrical</button>
+                                <button onclick="updateBeamChart('converging')" class="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:text-slate-800 transition beam-btn" id="btn-converging">Converging</button>
+                                <button onclick="updateBeamChart('diverging')" class="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:text-slate-800 transition beam-btn" id="btn-diverging">Diverging</button>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="beamsChart"></canvas>
+                        </div>
+
+                        <div class="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200" id="beam-description">
+                            <strong>Cylindrical (Parallel) Beam:</strong> All rays are parallel to each other. The width of the beam stays the same as it travels (e.g., a laser pointer).
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="module-images" class="module-section hidden">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-2">Optical Systems & Images</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        An optical system takes light from an object and redirects it to form an image. Click the cards below to explore the properties of different images and systems.
+                    </p>
+
+                    <h3 class="text-2xl font-semibold text-slate-800 mb-4">Types of Images</h3>
+                    <div class="grid sm:grid-cols-2 gap-6 mb-10 h-64">
+                        <div class="flip-card" onclick="this.classList.toggle('active')">
+                            <div class="flip-card-inner">
+                                <div class="flip-card-front bg-slate-800 text-white border-b-4 border-amber-500">
+                                    <span class="text-4xl mb-4">&#128247;</span>
+                                    <h4 class="text-2xl font-bold">Real Images</h4>
+                                    <p class="mt-2 text-slate-300 text-sm opacity-80">(Click to reveal properties)</p>
+                                </div>
+                                <div class="flip-card-back bg-white border border-slate-200 shadow-lg text-slate-800">
+                                    <h4 class="text-xl font-bold mb-4 border-b-2 border-amber-500 pb-2">Real Image Properties</h4>
+                                    <ul class="text-left space-y-2 text-sm w-full">
+                                        <li><strong>Formation:</strong> Light rays <em>actually meet</em> at a specific point.</li>
+                                        <li><strong>Orientation:</strong> Always inverted (upside down).</li>
+                                        <li><strong>Projection:</strong> <strong>CAN</strong> be projected onto a physical screen or sensor.</li>
+                                        <li><strong>Examples:</strong> Movie theater screen, camera sensor.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flip-card" onclick="this.classList.toggle('active')">
+                            <div class="flip-card-inner">
+                                <div class="flip-card-front bg-slate-800 text-white border-b-4 border-cyan-500">
+                                    <span class="text-4xl mb-4">&#129790;</span>
+                                    <h4 class="text-2xl font-bold">Virtual Images</h4>
+                                    <p class="mt-2 text-slate-300 text-sm opacity-80">(Click to reveal properties)</p>
+                                </div>
+                                <div class="flip-card-back bg-white border border-slate-200 shadow-lg text-slate-800">
+                                    <h4 class="text-xl font-bold mb-4 border-b-2 border-cyan-500 pb-2">Virtual Image Properties</h4>
+                                    <ul class="text-left space-y-2 text-sm w-full">
+                                        <li><strong>Formation:</strong> Light rays <em>appear</em> to come from a point, but don't actually meet.</li>
+                                        <li><strong>Orientation:</strong> Always upright.</li>
+                                        <li><strong>Projection:</strong> <strong>CANNOT</strong> be projected onto a screen.</li>
+                                        <li><strong>Examples:</strong> Reflection in a bathroom mirror.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-2xl font-semibold text-slate-800 mb-4">Common Optical Systems</h3>
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-100 border-b border-slate-200 text-slate-700">
+                                    <th class="p-4 font-semibold">System Type</th>
+                                    <th class="p-4 font-semibold">Function</th>
+                                    <th class="p-4 font-semibold">Image Size Output</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-600">
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="p-4 font-medium text-slate-800">Plane Mirrors</td>
+                                    <td class="p-4">Reflects light without altering ray divergence significantly.</td>
+                                    <td class="p-4"><span class="bg-slate-200 px-2 py-1 rounded text-xs font-bold text-slate-700">Same Shape & Size</span> as the original object.</td>
+                                </tr>
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="p-4 font-medium text-slate-800">Cameras / Lenses</td>
+                                    <td class="p-4">Bends (refracts) light rays to focus them on a specific plane.</td>
+                                    <td class="p-4"><span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-bold">Different Size</span> (usually smaller to fit on sensor/film).</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Navigation Logic ---
+        document.querySelectorAll('.nav-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('bg-amber-50', 'text-amber-700', 'font-semibold');
+                    btn.classList.add('text-slate-600', 'font-medium');
+                    btn.querySelector('span').classList.replace('opacity-100', 'opacity-0');
+                    btn.querySelector('span').classList.remove('text-amber-500');
+                });
+                
+                button.classList.add('bg-amber-50', 'text-amber-700', 'font-semibold');
+                button.classList.remove('text-slate-600', 'font-medium');
+                button.querySelector('span').classList.replace('opacity-0', 'opacity-100');
+                button.querySelector('span').classList.add('text-amber-500');
+
+                document.querySelectorAll('.module-section').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                
+                const targetId = button.getAttribute('data-target');
+                document.getElementById(targetId).classList.remove('hidden');
+
+                if(targetId === 'module-sources') renderSourcesChart();
+                if(targetId === 'module-beams') renderBeamsChart();
+            });
+        });
+
+        // Ensure active state on initial load for the first menu item's arrow
+        document.querySelector('.nav-btn').querySelector('span').classList.replace('opacity-0', 'opacity-100');
+
+
+        // --- Module 1: Propagation Simulator Logic ---
+        function setInteraction(type) {
+            const incident = document.getElementById('sim-ray-incident');
+            const outcome = document.getElementById('sim-ray-outcome');
+            const obstacle = document.getElementById('sim-obstacle');
+            const explanation = document.getElementById('sim-explanation');
+
+            incident.style.width = '70%';
+            outcome.style.transition = 'none';
+            outcome.style.opacity = '1';
+            outcome.style.transform = 'rotate(0deg)';
+            
+            // Force reflow
+            void outcome.offsetWidth;
+            outcome.style.transition = 'all 0.5s ease-in-out';
+
+            if (type === 'reflection') {
+                obstacle.style.background = '#94a3b8'; // Mirror like
+                obstacle.style.borderLeft = '4px solid #fff';
+                outcome.style.width = '70%';
+                outcome.style.transformOrigin = 'left center';
+                outcome.style.transform = 'rotate(140deg)';
+                explanation.innerHTML = "<strong>Reflection:</strong> Light bounces off the object's surface. The angle at which it hits (incidence) equals the angle it bounces off (reflection).";
+            } else if (type === 'refraction') {
+                obstacle.style.background = 'rgba(56, 189, 248, 0.3)'; // Glass like
+                obstacle.style.borderLeft = 'none';
+                outcome.style.width = '30%';
+                outcome.style.transformOrigin = 'left center';
+                outcome.style.transform = 'rotate(15deg) translateY(5px)';
+                explanation.innerHTML = "<strong>Refraction:</strong> Light enters a new medium (like glass or water), changing speed and bending its straight-line path.";
+            } else if (type === 'absorption') {
+                obstacle.style.background = '#1e293b'; // Dark, absorbing
+                obstacle.style.borderLeft = '2px solid #334155';
+                outcome.style.width = '0%';
+                explanation.innerHTML = "<strong>Absorption:</strong> Light is soaked up by the object and converted to heat. No light ray continues onward.";
+            }
+        }
+
+        // --- Module 2: Sources Chart Logic ---
+        let sourcesChartInstance = null;
+        function renderSourcesChart() {
+            if (sourcesChartInstance) return; 
+
+            const ctx = document.getElementById('sourcesChart').getContext('2d');
+            sourcesChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['The Sun', 'Lightbulb', 'Candle', 'The Moon', 'Mirror', 'White Paper'],
+                    datasets: [
+                        {
+                            label: 'Self-Emitted Energy',
+                            data: [100, 80, 40, 0, 0, 0],
+                            backgroundColor: '#f59e0b',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Reflected Energy (Ambient)',
+                            data: [0, 0, 0, 30, 95, 60],
+                            backgroundColor: '#94a3b8',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, title: { display: true, text: 'Relative Light Intensity' } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    if(context.dataIndex < 3) return "Type: Luminous (Primary)";
+                                    return "Type: Illuminated (Secondary)";
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Module 3: Beams Chart Logic ---
+        let beamsChartInstance = null;
+        
+        const beamData = {
+            cylindrical: {
+                desc: "<strong>Cylindrical (Parallel) Beam:</strong> All rays are parallel to each other. The width of the beam stays the same as it travels (e.g., a laser pointer).",
+                datasets: [
+                    { data: [{x:0, y:2}, {x:10, y:2}], borderColor: '#f59e0b', borderWidth: 3, pointRadius: 0 },
+                    { data: [{x:0, y:0}, {x:10, y:0}], borderColor: '#f59e0b', borderWidth: 3, pointRadius: 0 },
+                    { data: [{x:0, y:-2}, {x:10, y:-2}], borderColor: '#f59e0b', borderWidth: 3, pointRadius: 0 }
+                ]
+            },
+            converging: {
+                desc: "<strong>Converging Beam:</strong> Rays travel toward a single, common meeting point called the focus (e.g., light passing through a magnifying glass).",
+                datasets: [
+                    { data: [{x:0, y:4}, {x:10, y:0}], borderColor: '#3b82f6', borderWidth: 3, pointRadius: 0 },
+                    { data: [{x:0, y:0}, {x:10, y:0}], borderColor: '#3b82f6', borderWidth: 3, pointRadius: 0 },
+                    { data: [{x:0, y:-4}, {x:10, y:0}], borderColor: '#3b82f6', borderWidth: 3, pointRadius: 0 }
+                ]
+            },
+            diverging: {
+                desc: "<strong>Diverging Beam:</strong> Rays spread outward from a single starting point (e.g., light coming from a flashlight, car headlight, or a candle).",
+                datasets: [
+                    { data: [{x:0, y:0}, {x:10, y:4}], borderColor: '#10b981', borderWidth: 3, pointRadius: 0 },
+                    { data: [{x:0, y:0}, {x:10, y:0}], borderColor: '#10b981', borderWidth: 3, pointRadius: 0 },
+                    { data: [{x:0, y:0}, {x:10, y:-4}], borderColor: '#10b981', borderWidth: 3, pointRadius: 0 }
+                ]
+            }
+        };
+
+        function renderBeamsChart() {
+            if (beamsChartInstance) return;
+
+            const ctx = document.getElementById('beamsChart').getContext('2d');
+            beamsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: beamData['cylindrical'].datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 800, easing: 'easeOutQuart' },
+                    scales: {
+                        x: { type: 'linear', position: 'bottom', min: 0, max: 10, title: { display: true, text: 'Distance from Source' } },
+                        y: { min: -5, max: 5, display: false } // Hide Y axis for a cleaner look
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    }
+                }
+            });
+        }
+
+        function updateBeamChart(type) {
+            if (!beamsChartInstance) renderBeamsChart();
+            
+            // Update UI buttons
+            document.querySelectorAll('.beam-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'shadow-sm', 'text-slate-800');
+                btn.classList.add('text-slate-600');
+            });
+            const activeBtn = document.getElementById('btn-' + type);
+            activeBtn.classList.remove('text-slate-600');
+            activeBtn.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
+
+            // Update Chart and Text
+            beamsChartInstance.data.datasets = beamData[type].datasets;
+            beamsChartInstance.update();
+            document.getElementById('beam-description').innerHTML = beamData[type].desc;
+        }
+
+        // Initialize first simulator state
+        setTimeout(() => setInteraction('reflection'), 500);
+
+    </script>
+</body>
+</html>
