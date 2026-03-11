@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflection of Light - Interactive Lab</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Chosen Palette: Slate Backgrounds, White Cards, Cyan & Amber Accents -->
+    <!-- Application Structure Plan: The SPA is structured as a modular "Optics Lab" dashboard. It synthesizes the chapter into four logical, task-oriented sections: 1. Core Principles (interactive ray simulator to physically prove i=r), 2. Surface Types (comparing specular vs diffuse with real-world context like the puddle effect), 3. Plane Mirrors (interactive property explorer and distance charting), and 4. Critical Thinking (a dynamic calculator for the worksheet's clock problem and conceptual flashcards). This structure was chosen because it moves the user progressively from basic laws to real-world applications and mathematical problem-solving, matching the cognitive progression of the Grade 10 curriculum. -->
+    <!-- Visualization & Content Choices: 
+        1. Laws of Reflection -> Goal: Inform/Change -> Method: HTML5 Canvas API -> Interaction: Slider adjusts Angle of Incidence -> Justification: Directly visualizes the geometric relationship defined in the laws of reflection. NO SVG.
+        2. Reflection Types -> Goal: Compare -> Method: Tailwind CSS layouts & text blocks -> Interaction: Tab switching -> Justification: Cleary juxtaposes smooth vs rough surfaces with contextual real-world examples. NO SVG.
+        3. Mirror Properties -> Goal: Inform/Compare -> Method: Chart.js Bar Chart -> Interaction: Hover tooltips -> Justification: Mathematically plots Object Distance vs Image Distance to visually prove the 1:1 ratio. NO SVG.
+        4. Clock Problem -> Goal: Calculate/Engage -> Method: JS Logic & Dynamic Text -> Interaction: Dropdown selects target observer position -> Justification: Turns a static worksheet word problem into an interactive math calculator. NO SVG.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        /* Strict Chart Container Styling */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        /* Custom Interactive Elements */
+        .interactive-canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            background: #0f172a;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .flip-card {
+            perspective: 1000px;
+            cursor: pointer;
+            height: 200px;
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .flip-card.active .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .flip-card-front {
+            background-color: #1e293b;
+            color: white;
+            border-bottom: 4px solid #06b6d4;
+        }
+
+        .flip-card-back {
+            background-color: white;
+            color: #1e293b;
+            transform: rotateY(180deg);
+            border: 1px solid #e2e8f0;
+        }
+
+        /* CSS Ray Visualization */
+        .css-ray-container {
+            position: relative;
+            height: 150px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .css-ray {
+            position: absolute;
+            width: 2px;
+            background: #f59e0b;
+        }
+
+        .surface-mirror {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 10px;
+            background: linear-gradient(to right, #94a3b8, #cbd5e1);
+        }
+
+        .surface-rough {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 10px;
+            background: #78716c;
+            clip-path: polygon(0% 100%, 10% 20%, 20% 100%, 30% 10%, 40% 100%, 50% 30%, 60% 100%, 70% 0%, 80% 100%, 90% 20%, 100% 100%);
+        }
+
+        input[type=range] {
+            accent-color: #06b6d4;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-slate-200 z-20 flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center border-2 border-cyan-400 shadow-sm">
+                    <span class="text-cyan-400 font-bold text-xl">&#8743;</span>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Reflection<span class="text-cyan-500 font-light">Lab</span></h1>
+            </div>
+            <div class="hidden sm:block text-sm font-medium text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
+                Chapter 10 Physics
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Layout -->
+    <div class="flex flex-1 overflow-hidden max-w-7xl mx-auto w-full">
+        
+        <!-- Sidebar Navigation -->
+        <aside class="w-64 bg-white border-r border-slate-200 flex-shrink-0 overflow-y-auto hidden md:block z-10">
+            <nav class="p-6 space-y-3" id="nav-menu">
+                <button data-target="mod-laws" class="nav-btn w-full text-left px-4 py-3 rounded-lg bg-cyan-50 text-cyan-800 font-semibold border border-cyan-100 transition-all flex justify-between items-center shadow-sm">
+                    1. Laws of Reflection
+                    <span class="text-cyan-500">&#10095;</span>
+                </button>
+                <button data-target="mod-types" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 border border-transparent font-medium transition-all flex justify-between items-center">
+                    2. Surface Types
+                    <span class="text-slate-400 opacity-0 transition-opacity">&#10095;</span>
+                </button>
+                <button data-target="mod-mirrors" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 border border-transparent font-medium transition-all flex justify-between items-center">
+                    3. Plane Mirrors
+                    <span class="text-slate-400 opacity-0 transition-opacity">&#10095;</span>
+                </button>
+                <button data-target="mod-critical" class="nav-btn w-full text-left px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 border border-transparent font-medium transition-all flex justify-between items-center">
+                    4. Critical Thinking
+                    <span class="text-slate-400 opacity-0 transition-opacity">&#10095;</span>
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50 relative" id="main-content">
+            
+            <!-- SECTION 1: Laws of Reflection -->
+            <section id="mod-laws" class="module-section block">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-3">The Laws of Reflection</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        This section explores the fundamental geometry of light bouncing off a boundary. The interactive simulator below proves the core principle: the angle at which light strikes a surface is exactly equal to the angle at which it reflects.
+                    </p>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8 mb-8">
+                        <div class="flex flex-col md:flex-row gap-8 items-start">
+                            
+                            <div class="w-full md:w-1/3 space-y-4">
+                                <h3 class="text-xl font-bold text-slate-800 border-b-2 border-cyan-500 pb-2 inline-block">Key Definitions</h3>
+                                <ul class="space-y-3 text-sm text-slate-700">
+                                    <li><strong class="text-slate-900">Incident Ray:</strong> The incoming light beam.</li>
+                                    <li><strong class="text-slate-900">Reflected Ray:</strong> The outgoing light beam.</li>
+                                    <li><strong class="text-slate-900">Normal:</strong> An imaginary line drawn exactly perpendicular (90&deg;) to the mirror surface at the point of incidence.</li>
+                                </ul>
+                                <div class="bg-amber-50 border border-amber-200 p-4 rounded-lg mt-4">
+                                    <h4 class="font-bold text-amber-800 mb-1">The Golden Rule</h4>
+                                    <p class="text-amber-900 text-sm font-mono bg-amber-100 p-2 rounded text-center font-bold">Angle &icirc; = Angle r&#770;</p>
+                                    <p class="text-xs text-amber-700 mt-2 text-center">Angles are ALWAYS measured from the Normal, not the surface!</p>
+                                </div>
+                            </div>
+
+                            <div class="w-full md:w-2/3">
+                                <div class="flex justify-between items-center mb-4">
+                                    <label for="angle-slider" class="font-medium text-slate-700">Adjust Angle of Incidence (&icirc;): <span id="angle-display" class="font-bold text-cyan-600 w-8 inline-block">45&deg;</span></label>
+                                    <input type="range" id="angle-slider" min="5" max="85" value="45" class="w-1/2">
+                                </div>
+                                
+                                <div class="interactive-canvas-container">
+                                    <canvas id="rayCanvas" width="600" height="300" class="w-full h-auto block"></canvas>
+                                </div>
+                                
+                                <div class="flex justify-between text-xs text-slate-500 mt-2 px-2">
+                                    <span>Steep Angle</span>
+                                    <span>Shallow Angle</span>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: Types of Reflection -->
+            <section id="mod-types" class="module-section hidden">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-3">Specular vs. Diffuse Reflection</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        The texture of a surface completely changes how light behaves. This section compares reflection from perfectly smooth surfaces (like mirrors) to rough surfaces (like paper or asphalt).
+                    </p>
+
+                    <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        
+                        <!-- Regular Reflection -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                            <div class="p-6 bg-slate-50 border-b border-slate-200">
+                                <h3 class="text-xl font-bold text-slate-800">Regular (Specular) Reflection</h3>
+                                <p class="text-sm text-slate-500 mt-1">Occurs on smooth surfaces (mirrors, still water).</p>
+                            </div>
+                            <div class="p-6 flex-grow flex flex-col justify-between">
+                                <ul class="space-y-2 text-sm text-slate-700 mb-6">
+                                    <li class="flex gap-2"><span class="text-cyan-500">&#10004;</span> Parallel incoming rays stay parallel after reflecting.</li>
+                                    <li class="flex gap-2"><span class="text-cyan-500">&#10004;</span> Reflects light in one specific forward direction.</li>
+                                    <li class="flex gap-2"><span class="text-cyan-500">&#10004;</span> Forms a clear, sharp image.</li>
+                                </ul>
+                                <!-- CSS Diagram -->
+                                <div class="css-ray-container">
+                                    <div class="surface-mirror"></div>
+                                    <!-- Rays drawn via CSS positioning -->
+                                    <div class="css-ray h-[120px] left-[20%] top-[-20px] transform rotate-[30deg]"></div>
+                                    <div class="css-ray h-[120px] left-[50%] top-[-20px] transform rotate-[-30deg]"></div>
+                                    
+                                    <div class="css-ray h-[120px] left-[40%] top-[-20px] transform rotate-[30deg]"></div>
+                                    <div class="css-ray h-[120px] left-[70%] top-[-20px] transform rotate-[-30deg]"></div>
+                                    
+                                    <div class="css-ray h-[120px] left-[60%] top-[-20px] transform rotate-[30deg]"></div>
+                                    <div class="css-ray h-[120px] left-[90%] top-[-20px] transform rotate-[-30deg]"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Diffuse Reflection -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                            <div class="p-6 bg-slate-50 border-b border-slate-200">
+                                <h3 class="text-xl font-bold text-slate-800">Diffuse Reflection</h3>
+                                <p class="text-sm text-slate-500 mt-1">Occurs on rough surfaces (paper, walls, dry roads).</p>
+                            </div>
+                            <div class="p-6 flex-grow flex flex-col justify-between">
+                                <ul class="space-y-2 text-sm text-slate-700 mb-6">
+                                    <li class="flex gap-2"><span class="text-amber-500">&#10004;</span> Parallel rays are scattered in many different directions.</li>
+                                    <li class="flex gap-2"><span class="text-amber-500">&#10004;</span> No clear image is formed.</li>
+                                    <li class="flex gap-2"><span class="text-amber-500">&#10004;</span> Allows us to see the object itself from any angle.</li>
+                                </ul>
+                                <!-- CSS Diagram -->
+                                <div class="css-ray-container">
+                                    <div class="surface-rough"></div>
+                                    <!-- Incident parallel rays -->
+                                    <div class="css-ray h-[120px] left-[20%] top-[-20px] transform rotate-[30deg]"></div>
+                                    <div class="css-ray h-[120px] left-[40%] top-[-20px] transform rotate-[30deg]"></div>
+                                    <div class="css-ray h-[120px] left-[60%] top-[-20px] transform rotate-[30deg]"></div>
+                                    
+                                    <!-- Scattered reflected rays -->
+                                    <div class="css-ray h-[120px] left-[50%] top-[-20px] transform rotate-[-10deg] bg-amber-400"></div>
+                                    <div class="css-ray h-[120px] left-[70%] top-[-20px] transform rotate-[-60deg] bg-amber-400"></div>
+                                    <div class="css-ray h-[120px] left-[90%] top-[-20px] transform rotate-[-25deg] bg-amber-400"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Real World Application -->
+                    <div class="bg-slate-800 text-white p-6 rounded-xl shadow-md border-l-4 border-cyan-400">
+                        <h4 class="text-lg font-bold mb-2 flex items-center gap-2">
+                            <span class="text-2xl">&#127783;</span> Real-World Physics: The "Puddle Effect"
+                        </h4>
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            Have you noticed it's harder to see the road while driving at night when it's raining? <br><br>
+                            <strong>Dry Road:</strong> The asphalt is rough. Headlights undergo <em>Diffuse Reflection</em>, scattering light in all directions, including back to the driver's eyes, making the road visible.<br>
+                            <strong>Wet Road:</strong> Water fills the rough gaps, creating a smooth surface. Headlights undergo <em>Regular (Specular) Reflection</em>, bouncing the light far forward like a mirror. Little light returns to the driver, and it causes severe glare for oncoming cars!
+                        </p>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- SECTION 3: Plane Mirrors -->
+            <section id="mod-mirrors" class="module-section hidden">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-3">Images in a Plane Mirror</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        A plane (flat) mirror forms an image of any object placed in front of it. This section details the five critical characteristics of these images and visually maps the relationship between object and image geometry.
+                    </p>
+
+                    <!-- 5 Properties Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center">
+                            <div class="text-3xl mb-2">&#128123;</div>
+                            <h4 class="font-bold text-slate-800 text-sm">Virtual</h4>
+                            <p class="text-xs text-slate-500 mt-1">Forms behind mirror; cannot be projected.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center">
+                            <div class="text-3xl mb-2">&#8593;</div>
+                            <h4 class="font-bold text-slate-800 text-sm">Upright</h4>
+                            <p class="text-xs text-slate-500 mt-1">Appears the same way up as the object.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center">
+                            <div class="text-3xl mb-2">&#128207;</div>
+                            <h4 class="font-bold text-slate-800 text-sm">Same Size</h4>
+                            <p class="text-xs text-slate-500 mt-1">No magnification occurs.</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center">
+                            <div class="text-3xl mb-2">&#8596;</div>
+                            <h4 class="font-bold text-slate-800 text-sm">Equidistant</h4>
+                            <p class="text-xs text-slate-500 mt-1">Object distance (p) = Image distance (q).</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 text-center">
+                            <div class="text-3xl mb-2">&#128075;</div>
+                            <h4 class="font-bold text-slate-800 text-sm">Laterally Inverted</h4>
+                            <p class="text-xs text-slate-500 mt-1">Left becomes right, and vice versa.</p>
+                        </div>
+                    </div>
+
+                    <!-- Chart Section -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-xl font-semibold mb-2 text-slate-800">Geometry of Reflection</h3>
+                        <p class="text-sm text-slate-500 mb-6">The chart below demonstrates the 1:1 ratio between the Object's distance from the mirror and the Image's apparent distance behind the mirror.</p>
+                        
+                        <div class="chart-container">
+                            <canvas id="mirrorChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- SECTION 4: Critical Thinking -->
+            <section id="mod-critical" class="module-section hidden">
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-3">Critical Thinking & Problem Solving</h2>
+                    <p class="text-lg text-slate-600 mb-6 pb-6 border-b border-slate-200">
+                        Apply the laws of reflection to solve real-world scenarios and mathematical problems from your worksheet. Interact with the tools below to check your understanding.
+                    </p>
+
+                    <!-- The Clock Face Problem Calculator -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8 border-t-4 border-t-amber-400">
+                        <div class="flex items-center gap-3 mb-4">
+                            <span class="text-3xl">&#9200;</span>
+                            <h3 class="text-xl font-bold text-slate-800">The Giant Clock Face Problem</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-6">
+                            <strong>Scenario:</strong> You are holding a flat mirror at the center of a giant clock face. A friend at <strong>12 o'clock</strong> shines a beam toward you. You want to reflect it to an observer. Select the observer's position to calculate the required angles.
+                        </p>
+
+                        <div class="grid md:grid-cols-2 gap-8 items-center">
+                            
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <label for="clock-select" class="block text-sm font-bold text-slate-700 mb-2">Observer is standing at:</label>
+                                <select id="clock-select" class="w-full p-2 border border-slate-300 rounded bg-white text-slate-800 mb-4 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                                    <option value="1">1 o'clock</option>
+                                    <option value="2">2 o'clock</option>
+                                    <option value="3">3 o'clock</option>
+                                    <option value="4">4 o'clock</option>
+                                    <option value="5" selected>5 o'clock (Worksheet Example)</option>
+                                    <option value="6">6 o'clock</option>
+                                    <option value="7">7 o'clock</option>
+                                    <option value="8">8 o'clock</option>
+                                    <option value="9">9 o'clock</option>
+                                    <option value="10">10 o'clock</option>
+                                    <option value="11">11 o'clock</option>
+                                </select>
+
+                                <button onclick="calculateClock()" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded transition">
+                                    Calculate Angles
+                                </button>
+                            </div>
+
+                            <div class="bg-white p-4 rounded-lg border border-slate-200 shadow-inner">
+                                <h4 class="text-sm font-bold text-slate-500 uppercase tracking-wide border-b pb-2 mb-3">Calculated Results</h4>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-700">Shortest Distance:</span>
+                                        <span id="res-hours" class="font-bold text-slate-900 bg-slate-100 px-2 py-1 rounded">5 hours</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-700">Total Angle (Rays):</span>
+                                        <span id="res-total" class="font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded">150&deg;</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2 border-t border-slate-100">
+                                        <span class="text-slate-700">Angle of Incidence (&icirc;):</span>
+                                        <span id="res-inc" class="font-bold text-cyan-600">75&deg;</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-slate-700">Angle of Reflection (r&#770;):</span>
+                                        <span id="res-ref" class="font-bold text-cyan-600">75&deg;</span>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-slate-400 mt-4 text-center italic">Math: 1 hour = 360&deg; / 12 = 30&deg;</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Conceptual Questions (Flip Cards) -->
+                    <h3 class="text-2xl font-bold text-slate-800 mb-4 mt-10">Conceptual Flashcards</h3>
+                    <div class="grid md:grid-cols-2 gap-6 pb-12">
+                        
+                        <div class="flip-card" onclick="this.classList.toggle('active')">
+                            <div class="flip-card-inner">
+                                <div class="flip-card-front">
+                                    <span class="text-3xl mb-3">&#128269;</span>
+                                    <h4 class="text-lg font-bold px-4">Why does a mirror reverse left to right, but not up and down?</h4>
+                                    <p class="text-xs text-cyan-300 mt-2 opacity-80">(Click to reveal answer)</p>
+                                </div>
+                                <div class="flip-card-back">
+                                    <h4 class="text-sm font-bold text-slate-500 uppercase border-b pb-1 mb-2">Answer</h4>
+                                    <p class="text-sm text-slate-700">Mirrors don't actually reverse left and right; they reverse <strong>front and back</strong> (depth). Your nose is closer to the mirror than your ears, so the image's nose is closer to the glass. This depth inversion creates the <em>illusion</em> of lateral inversion.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flip-card" onclick="this.classList.toggle('active')">
+                            <div class="flip-card-inner">
+                                <div class="flip-card-front">
+                                    <span class="text-3xl mb-3">&#128171;</span>
+                                    <h4 class="text-lg font-bold px-4">What creates multiple images between two flat mirrors?</h4>
+                                    <p class="text-xs text-cyan-300 mt-2 opacity-80">(Click to reveal answer)</p>
+                                </div>
+                                <div class="flip-card-back">
+                                    <h4 class="text-sm font-bold text-slate-500 uppercase border-b pb-1 mb-2">Answer</h4>
+                                    <p class="text-sm text-slate-700">When two mirrors face each other exactly <strong>parallel</strong>, the reflected light bounces back and forth infinitely. The image in the first mirror acts as the "object" for the second mirror, and so on, creating an endless tunnel effect.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flip-card" onclick="this.classList.toggle('active')">
+                            <div class="flip-card-inner">
+                                <div class="flip-card-front">
+                                    <span class="text-3xl mb-3">&#127970;</span>
+                                    <h4 class="text-lg font-bold px-4">Why are some shop windows slanted inward at the bottom?</h4>
+                                    <p class="text-xs text-cyan-300 mt-2 opacity-80">(Click to reveal answer)</p>
+                                </div>
+                                <div class="flip-card-back">
+                                    <h4 class="text-sm font-bold text-slate-500 uppercase border-b pb-1 mb-2">Answer</h4>
+                                    <p class="text-sm text-slate-700">Slanting the window changes the normal line. It reflects the glare of bright sky or buildings downwards (toward the sidewalk) rather than straight back into the eyes of shoppers, allowing them to see the display inside clearly.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flip-card" onclick="this.classList.toggle('active')">
+                            <div class="flip-card-inner">
+                                <div class="flip-card-front">
+                                    <span class="text-3xl mb-3">&#128208;</span>
+                                    <h4 class="text-lg font-bold px-4">If a wall is a mirror, how much larger does the room appear?</h4>
+                                    <p class="text-xs text-cyan-300 mt-2 opacity-80">(Click to reveal answer)</p>
+                                </div>
+                                <div class="flip-card-back">
+                                    <h4 class="text-sm font-bold text-slate-500 uppercase border-b pb-1 mb-2">Answer</h4>
+                                    <p class="text-sm text-slate-700">It appears <strong>twice</strong> as large. Because the image distance equals the object distance ($p=q$), the reflection creates a virtual extension of the room behind the mirror that is exactly the same depth as the actual room.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- Navigation Logic ---
+        document.querySelectorAll('.nav-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // Reset all buttons
+                document.querySelectorAll('.nav-btn').forEach(btn => {
+                    btn.classList.remove('bg-cyan-50', 'text-cyan-800', 'font-semibold', 'border-cyan-100', 'shadow-sm');
+                    btn.classList.add('text-slate-600', 'font-medium', 'border-transparent');
+                    btn.querySelector('span').classList.replace('opacity-100', 'opacity-0');
+                    btn.querySelector('span').classList.remove('text-cyan-500');
+                });
+                
+                // Activate clicked button
+                button.classList.add('bg-cyan-50', 'text-cyan-800', 'font-semibold', 'border-cyan-100', 'shadow-sm');
+                button.classList.remove('text-slate-600', 'font-medium', 'border-transparent');
+                button.querySelector('span').classList.replace('opacity-0', 'opacity-100');
+                button.querySelector('span').classList.add('text-cyan-500');
+
+                // Hide all sections
+                document.querySelectorAll('.module-section').forEach(section => {
+                    section.classList.add('hidden');
+                });
+                
+                // Show target section
+                const targetId = button.getAttribute('data-target');
+                document.getElementById(targetId).classList.remove('hidden');
+
+                // Trigger specific module initialization
+                if(targetId === 'mod-mirrors') renderMirrorChart();
+            });
+        });
+
+        // --- Module 1: Ray Canvas Simulator ---
+        const canvas = document.getElementById('rayCanvas');
+        const ctx = canvas.getContext('2d');
+        const angleSlider = document.getElementById('angle-slider');
+        const angleDisplay = document.getElementById('angle-display');
+
+        function drawRayDiagram(angleDeg) {
+            const width = canvas.width;
+            const height = canvas.height;
+            const mirrorY = height - 40;
+            const cx = width / 2; // Center X
+            const cy = mirrorY;   // Center Y (point of incidence)
+            const rayLength = 250;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Mirror Base
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, mirrorY, width, 40);
+            
+            // Draw Mirror Surface Line
+            ctx.beginPath();
+            ctx.moveTo(0, mirrorY);
+            ctx.lineTo(width, mirrorY);
+            ctx.strokeStyle = '#94a3b8';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Draw Normal (Dashed Line)
+            ctx.beginPath();
+            ctx.setLineDash([10, 10]);
+            ctx.moveTo(cx, 10);
+            ctx.lineTo(cx, mirrorY);
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset
+
+            // Label Normal
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '14px Arial';
+            ctx.fillText("Normal", cx + 10, 30);
+
+            // Calculate Angles (Convert degrees to radians)
+            // 0 degrees is the normal (straight up).
+            const angleRad = angleDeg * (Math.PI / 180);
+            
+            // Calculate Incident Ray Start Point
+            const incX = cx - (rayLength * Math.sin(angleRad));
+            const incY = cy - (rayLength * Math.cos(angleRad));
+
+            // Calculate Reflected Ray End Point
+            const refX = cx + (rayLength * Math.sin(angleRad));
+            const refY = cy - (rayLength * Math.cos(angleRad));
+
+            // Draw Incident Ray (Cyan)
+            ctx.beginPath();
+            ctx.moveTo(incX, incY);
+            ctx.lineTo(cx, cy);
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Draw Reflected Ray (Amber)
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(refX, refY);
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // Draw Arrows (Triangles)
+            drawArrow(ctx, incX, incY, cx, cy, '#06b6d4');
+            drawArrow(ctx, cx, cy, refX, refY, '#f59e0b');
+
+            // Draw Angle Arcs
+            ctx.beginPath();
+            ctx.arc(cx, cy, 60, -Math.PI/2 - angleRad, -Math.PI/2, false);
+            ctx.strokeStyle = 'rgba(6, 182, 212, 0.5)';
+            ctx.lineWidth = 20;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, 60, -Math.PI/2, -Math.PI/2 + angleRad, false);
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.5)';
+            ctx.lineWidth = 20;
+            ctx.stroke();
+            
+            // Labels for i and r
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(`i = ${angleDeg}°`, cx - 55, cy - 75);
+            ctx.fillText(`r = ${angleDeg}°`, cx + 10, cy - 75);
+        }
+
+        // Helper function to draw directional arrows on rays
+        function drawArrow(ctx, fromx, fromy, tox, toy, color) {
+            const headlen = 15; // length of head in pixels
+            const dx = tox - fromx;
+            const dy = toy - fromy;
+            const angle = Math.atan2(dy, dx);
+            
+            // Draw arrowhead in the middle of the line
+            const midX = fromx + dx * 0.5;
+            const midY = fromy + dy * 0.5;
+
+            ctx.beginPath();
+            ctx.moveTo(midX, midY);
+            ctx.lineTo(midX - headlen * Math.cos(angle - Math.PI / 6), midY - headlen * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(midX - headlen * Math.cos(angle + Math.PI / 6), midY - headlen * Math.sin(angle + Math.PI / 6));
+            ctx.lineTo(midX, midY);
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
+
+        // Initialize and bind slider
+        drawRayDiagram(45);
+        angleSlider.addEventListener('input', function() {
+            const val = this.value;
+            angleDisplay.innerHTML = val + '&deg;';
+            drawRayDiagram(val);
+        });
+
+
+        // --- Module 3: Mirror Properties Chart ---
+        let mirrorChartInstance = null;
+        function renderMirrorChart() {
+            if (mirrorChartInstance) return;
+
+            const ctxChart = document.getElementById('mirrorChart').getContext('2d');
+            
+            // Data demonstrating p = q
+            const distances = [10, 20, 30, 40, 50]; 
+            
+            mirrorChartInstance = new Chart(ctxChart, {
+                type: 'bar',
+                data: {
+                    labels: ['Position A', 'Position B', 'Position C', 'Position D', 'Position E'],
+                    datasets: [
+                        {
+                            label: 'Object Distance in front of mirror (p)',
+                            data: distances,
+                            backgroundColor: '#06b6d4',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Image Distance behind mirror (q)',
+                            data: distances, // Same values to prove equality
+                            backgroundColor: '#94a3b8',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Distance (cm)' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                afterLabel: function() {
+                                    return "Equality Proof: p = q";
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Module 4: Clock Problem Calculator ---
+        function calculateClock() {
+            const targetHour = parseInt(document.getElementById('clock-select').value);
+            const sourceHour = 12;
+            
+            // Calculate shortest path in hours on a 12-hour clock
+            let diff = Math.abs(sourceHour - targetHour);
+            if (diff > 6) diff = 12 - diff; // Shortest path around the circle
+            
+            // Each hour is 30 degrees (360 / 12)
+            const totalAngle = diff * 30;
+            
+            // Angle of incidence = Angle of reflection = Total Angle / 2
+            const iAndR = totalAngle / 2;
+
+            // Update UI
+            document.getElementById('res-hours').innerText = diff + " hour(s)";
+            document.getElementById('res-total').innerHTML = totalAngle + "&deg;";
+            document.getElementById('res-inc').innerHTML = iAndR + "&deg;";
+            document.getElementById('res-ref').innerHTML = iAndR + "&deg;";
+
+            // Add highlight animation
+            const resultsBox = document.getElementById('res-hours').parentElement.parentElement;
+            resultsBox.classList.add('bg-amber-50');
+            setTimeout(() => resultsBox.classList.remove('bg-amber-50'), 500);
+        }
+
+        // Initialize clock calculator on load
+        calculateClock();
+
+    </script>
+</body>
+</html>

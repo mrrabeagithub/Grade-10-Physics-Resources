@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reflection of Light | Interactive Explorer</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Chosen Palette: Warm Neutrals (Slate-50) with Amber (Light) and Slate/Blue (Mirror) accents -->
+    <!-- Application Structure Plan: A module-based interactive textbook approach. The structure flows from fundamental definitions (Basics) to core principles (Laws), practical application (Plane Mirrors), and system optimization (Field of Vision). This linear but explorable flow allows students to build knowledge step-by-step, using interactive elements to verify their understanding of geometric optics rather than just reading static text. -->
+    <!-- Visualization & Content Choices: 
+         1. Concept: Regular vs Diffuse -> Goal: Compare -> Method: Interactive toggle cards with text updates -> Justification: Allows user to isolate and compare the two main types of surface interactions.
+         2. Concept: Law of Reflection -> Goal: Inform/Change -> Method: HTML5 Canvas with range slider -> Justification: Real-time manipulation of the angle of incidence builds intuitive understanding of the geometric relationship (NO SVG used).
+         3. Concept: Plane Mirror Images -> Goal: Organize/Inform -> Method: Clickable discovery grid -> Justification: Breaks down the 5 key characteristics into digestible, interactive pieces.
+         4. Concept: Field of Vision (Convex vs Plane) -> Goal: Compare -> Method: Chart.js Bar Chart -> Justification: Quantifies the qualitative statement "convex has a larger field of view" into a clear visual comparison. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        /* Essential Chart Container Styling for responsiveness and bounds */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 30vh;
+            min-height: 250px;
+            max-height: 350px;
+        }
+
+        /* Interactive Canvas Styling */
+        .interactive-canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 0.5rem;
+            background-color: #1e293b; /* slate-800 */
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Card flip animations */
+        .flip-card {
+            background-color: transparent;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        .flip-card.active .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        .flip-card-front {
+            background-color: #ffffff;
+            color: #0f172a;
+            border: 2px solid #e2e8f0;
+        }
+        .flip-card-back {
+            background-color: #f59e0b; /* amber-500 */
+            color: white;
+            transform: rotateY(180deg);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans leading-relaxed">
+
+    <!-- Header Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">💡</span>
+                    <span class="font-bold text-xl tracking-tight text-slate-900">Optics Explorer</span>
+                </div>
+                <div class="hidden md:flex space-x-8 items-center">
+                    <a href="#basics" class="text-slate-500 hover:text-amber-500 font-medium transition-colors">Basics</a>
+                    <a href="#laws" class="text-slate-500 hover:text-amber-500 font-medium transition-colors">Laws of Reflection</a>
+                    <a href="#mirrors" class="text-slate-500 hover:text-amber-500 font-medium transition-colors">Plane Mirrors</a>
+                    <a href="#fov" class="text-slate-500 hover:text-amber-500 font-medium transition-colors">Field of Vision</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="bg-slate-900 text-white py-16">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500">
+                Reflection of Light
+            </h1>
+            <p class="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
+                Like any wave, when light encounters a surface or obstacle it cannot pass through, it bounces back. Discover the laws governing this fundamental optical phenomenon.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
+
+        <!-- SECTION 1: Basics -->
+        <section id="basics" class="scroll-mt-24">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 border-b-4 border-amber-400 pb-2 inline-block">1. Types of Reflection</h2>
+                <p class="mt-4 text-slate-600 text-lg">
+                    This section introduces the foundational concepts of surface interaction. By exploring how light behaves on different textures, we understand why mirrors form clear images while ordinary objects simply become visible. Interact with the buttons below to compare Regular and Diffuse reflection.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Interactive Selector -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Select Surface Type</h3>
+                    <div class="flex space-x-4 mb-6">
+                        <button id="btn-regular" class="flex-1 py-3 px-4 rounded-lg bg-amber-500 text-white font-medium shadow-md transition transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-opacity-50">
+                            🪞 Regular (Specular)
+                        </button>
+                        <button id="btn-diffuse" class="flex-1 py-3 px-4 rounded-lg bg-slate-200 text-slate-700 font-medium shadow-sm hover:bg-slate-300 transition transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-opacity-50">
+                            🧱 Diffuse
+                        </button>
+                    </div>
+                    
+                    <div id="reflection-content" class="p-4 bg-slate-50 rounded-lg min-h-[150px] border border-slate-100 flex flex-col justify-center">
+                        <h4 id="reflection-title" class="text-lg font-bold text-slate-800 mb-2">Regular Reflection</h4>
+                        <p id="reflection-desc" class="text-slate-600">When parallel light rays strike a <strong>smooth surface</strong>, all of the rays are reflected at the same angle in the same forward direction. This forms a clear image.</p>
+                        <p class="text-sm text-slate-400 mt-2 italic" id="reflection-example">Example: Plane mirrors, calm water.</p>
+                    </div>
+                </div>
+
+                <!-- Concept Text -->
+                <div class="flex flex-col justify-center space-y-4 text-slate-700">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-xl font-bold">!</div>
+                        <p class="ml-4"><strong>The Reversibility of Light:</strong> The path followed by light is independent of its direction of travel. If you reverse the direction of a ray, it will follow exactly the same path backward.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: The Laws of Reflection -->
+        <section id="laws" class="scroll-mt-24">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 border-b-4 border-amber-400 pb-2 inline-block">2. The Laws of Reflection</h2>
+                <p class="mt-4 text-slate-600 text-lg">
+                    Here we visualize the strict geometric rules that govern specular reflection. Use the interactive simulator below to change the angle of the incoming light ray and observe how the reflected ray responds according to the Second Law of Reflection.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+                <div class="grid lg:grid-cols-5">
+                    
+                    <!-- Text / Controls -->
+                    <div class="lg:col-span-2 p-8 bg-slate-50 flex flex-col justify-center">
+                        <h3 class="text-xl font-bold text-slate-800 mb-4">The Two Laws</h3>
+                        <ul class="space-y-4 mb-8 text-slate-700">
+                            <li class="flex items-start">
+                                <span class="text-amber-500 font-bold mr-2">1.</span>
+                                <span>The incident ray, the reflected ray, and the <strong>normal</strong> at the point of incidence all lie in the same plane.</span>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-amber-500 font-bold mr-2">2.</span>
+                                <span>The angle of incidence is equal to the angle of reflection (<span class="font-serif italic font-bold">î = r̂</span>).</span>
+                            </li>
+                        </ul>
+
+                        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+                            <label for="angleSlider" class="block text-sm font-medium text-slate-700 mb-2">
+                                Adjust Angle of Incidence (î): <span id="angleValue" class="text-amber-600 font-bold text-lg">45°</span>
+                            </label>
+                            <input type="range" id="angleSlider" min="10" max="80" value="45" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                        </div>
+                    </div>
+
+                    <!-- Canvas Visualization -->
+                    <div class="lg:col-span-3 p-6 flex items-center justify-center bg-slate-800">
+                        <div class="interactive-canvas-container">
+                            <!-- Canvas element, no SVG -->
+                            <canvas id="rayCanvas" width="500" height="300" class="w-full h-auto"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Plane Mirrors -->
+        <section id="mirrors" class="scroll-mt-24">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 border-b-4 border-amber-400 pb-2 inline-block">3. Images in a Plane Mirror</h2>
+                <p class="mt-4 text-slate-600 text-lg">
+                    When you look into a standard flat mirror, the image you see has specific optical properties. This section organizes these characteristics. Click on each card to reveal the definition and understand exactly how plane mirrors construct our virtual reflections.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <!-- Interactive Cards -->
+                <div class="flip-card h-48" onclick="this.classList.toggle('active')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <span class="text-3xl mb-2">👻</span>
+                            <h3 class="font-bold text-lg">Virtual</h3>
+                            <p class="text-xs text-slate-500 mt-2 text-center">Click to reveal</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h3 class="font-bold text-lg mb-2 border-b border-amber-300 pb-1">Virtual</h3>
+                            <p class="text-sm">The image appears behind the mirror. It forms where light <em>seems</em> to come from and cannot be collected on a screen.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card h-48" onclick="this.classList.toggle('active')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <span class="text-3xl mb-2">⬆️</span>
+                            <h3 class="font-bold text-lg">Upright</h3>
+                            <p class="text-xs text-slate-500 mt-2 text-center">Click to reveal</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h3 class="font-bold text-lg mb-2 border-b border-amber-300 pb-1">Upright</h3>
+                            <p class="text-sm">The image is not inverted along the vertical direction. Top stays top, bottom stays bottom.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card h-48" onclick="this.classList.toggle('active')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <span class="text-3xl mb-2">📏</span>
+                            <h3 class="font-bold text-lg">Same Size</h3>
+                            <p class="text-xs text-slate-500 mt-2 text-center">Click to reveal</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h3 class="font-bold text-lg mb-2 border-b border-amber-300 pb-1">Same Size</h3>
+                            <p class="text-sm">The image height ($h'$) is exactly equal to the object height ($h$). It is a 1:1 copy.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card h-48" onclick="this.classList.toggle('active')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <span class="text-3xl mb-2">↔️</span>
+                            <h3 class="font-bold text-lg">Same Distance</h3>
+                            <p class="text-xs text-slate-500 mt-2 text-center">Click to reveal</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h3 class="font-bold text-lg mb-2 border-b border-amber-300 pb-1">Same Distance</h3>
+                            <p class="text-sm">Its distance from the mirror ($q$) is equal to that of the object from the mirror ($p$).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flip-card h-48 sm:col-span-2 lg:col-span-1" onclick="this.classList.toggle('active')">
+                    <div class="flip-card-inner">
+                        <div class="flip-card-front">
+                            <span class="text-3xl mb-2">✋</span>
+                            <h3 class="font-bold text-lg">Laterally Inverted</h3>
+                            <p class="text-xs text-slate-500 mt-2 text-center">Click to reveal</p>
+                        </div>
+                        <div class="flip-card-back">
+                            <h3 class="font-bold text-lg mb-2 border-b border-amber-300 pb-1">Lateral Inversion</h3>
+                            <p class="text-sm">Left and right appear reversed. The image of a right hand looks like a left hand.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Field of Vision & Convex Mirrors -->
+        <section id="fov" class="scroll-mt-24 mb-24">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900 border-b-4 border-amber-400 pb-2 inline-block">4. Field of Vision</h2>
+                <p class="mt-4 text-slate-600 text-lg">
+                    The field of view is the space an observer can perceive when looking in a mirror. This section compares how different mirror geometries—specifically flat vs. convex—impact visibility, visualizing why certain mirrors are chosen for vehicle safety and security.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4">How to Increase Field of Vision</h3>
+                    <ul class="list-disc pl-5 space-y-3 text-slate-700">
+                        <li><strong>Increase the size of the mirror:</strong> Larger mirror = wider angles of incidence/reflection captured.</li>
+                        <li><strong>Bring the observer closer:</strong> Decreasing distance expands the angular sweep of the reflected rays entering the eye.</li>
+                        <li><strong>Use a Convex Mirror:</strong> A spherical mirror curved outward diverges light rays, dramatically expanding the perceivable area.</li>
+                    </ul>
+                    <div class="mt-6 p-4 bg-amber-50 rounded border-l-4 border-amber-500 text-amber-900 text-sm">
+                        <strong>Real-World Application:</strong> Because their field of vision is larger, convex mirrors are heavily used as rear-view and side mirrors in cars, motorcycles, and at blind crossroads.
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-center font-bold text-slate-800 mb-2">Relative Field of View Comparison</h3>
+                    <p class="text-center text-xs text-slate-500 mb-4">(Conceptual representation for mirrors of equal surface area)</p>
+                    
+                    <!-- Chart.js Container -->
+                    <div class="chart-container">
+                        <canvas id="fovChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-900 text-slate-400 py-8 text-center">
+        <p>© Optics Interactive Explorer based on "Chapter 10: Reflection of Light".</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- 1. Interactions for Section 1: Basics (State Management) ---
+            const btnRegular = document.getElementById('btn-regular');
+            const btnDiffuse = document.getElementById('btn-diffuse');
+            const refTitle = document.getElementById('reflection-title');
+            const refDesc = document.getElementById('reflection-desc');
+            const refExample = document.getElementById('reflection-example');
+
+            const contentData = {
+                regular: {
+                    title: "Regular Reflection",
+                    desc: "When parallel light rays strike a <strong>smooth surface</strong>, all of the rays are reflected at the same angle in the same forward direction. This allows a clear image to form.",
+                    example: "Example: Plane mirrors, still water surfaces, polished metal."
+                },
+                diffuse: {
+                    title: "Diffuse Reflection",
+                    desc: "When parallel light rays strike a <strong>rough surface</strong> (at a microscopic level), the surface normals point in different directions. The rays are reflected at varying angles, scattering the light.",
+                    example: "Example: Paper, carpets, walls, clothing."
+                }
+            };
+
+            function setReflectionMode(mode) {
+                if (mode === 'regular') {
+                    btnRegular.classList.replace('bg-slate-200', 'bg-amber-500');
+                    btnRegular.classList.replace('text-slate-700', 'text-white');
+                    btnDiffuse.classList.replace('bg-amber-500', 'bg-slate-200');
+                    btnDiffuse.classList.replace('text-white', 'text-slate-700');
+                } else {
+                    btnDiffuse.classList.replace('bg-slate-200', 'bg-amber-500');
+                    btnDiffuse.classList.replace('text-slate-700', 'text-white');
+                    btnRegular.classList.replace('bg-amber-500', 'bg-slate-200');
+                    btnRegular.classList.replace('text-white', 'text-slate-700');
+                }
+                
+                // Update text
+                refTitle.innerHTML = contentData[mode].title;
+                refDesc.innerHTML = contentData[mode].desc;
+                refExample.innerHTML = contentData[mode].example;
+            }
+
+            btnRegular.addEventListener('click', () => setReflectionMode('regular'));
+            btnDiffuse.addEventListener('click', () => setReflectionMode('diffuse'));
+
+            // --- 2. Interactive Canvas for Laws of Reflection (Vanilla JS) ---
+            const canvas = document.getElementById('rayCanvas');
+            const ctx = canvas.getContext('2d');
+            const angleSlider = document.getElementById('angleSlider');
+            const angleValueTxt = document.getElementById('angleValue');
+
+            function drawRayDiagram(angleDegrees) {
+                // Canvas setup
+                const width = canvas.width;
+                const height = canvas.height;
+                const centerX = width / 2;
+                const surfaceY = height - 40; // Mirror surface Y
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+
+                // Draw Mirror Surface
+                ctx.beginPath();
+                ctx.moveTo(40, surfaceY);
+                ctx.lineTo(width - 40, surfaceY);
+                ctx.strokeStyle = '#cbd5e1'; // slate-300
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // Draw mirror hash marks (indicating back of mirror)
+                ctx.beginPath();
+                for (let i = 50; i < width - 40; i += 15) {
+                    ctx.moveTo(i, surfaceY);
+                    ctx.lineTo(i - 10, surfaceY + 15);
+                }
+                ctx.strokeStyle = '#64748b'; // slate-500
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Draw Normal Line
+                ctx.beginPath();
+                ctx.setLineDash([5, 5]);
+                ctx.moveTo(centerX, 20);
+                ctx.lineTo(centerX, surfaceY);
+                ctx.strokeStyle = '#94a3b8'; // slate-400
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.setLineDash([]); // reset dash
+                
+                // Text for Normal
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('Normal', centerX, 15);
+
+                // Math for Rays (angle from normal)
+                const rayLength = 200;
+                const angleRad = angleDegrees * (Math.PI / 180);
+
+                // Incident Ray (comes from left)
+                const startX = centerX - rayLength * Math.sin(angleRad);
+                const startY = surfaceY - rayLength * Math.cos(angleRad);
+                
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(centerX, surfaceY);
+                ctx.strokeStyle = '#fbbf24'; // amber-400
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Incident Ray Arrow
+                drawArrowhead(ctx, startX, startY, centerX, surfaceY, '#fbbf24');
+
+                // Reflected Ray (goes to right)
+                const endX = centerX + rayLength * Math.sin(angleRad);
+                const endY = surfaceY - rayLength * Math.cos(angleRad);
+
+                ctx.beginPath();
+                ctx.moveTo(centerX, surfaceY);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = '#38bdf8'; // sky-400
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Reflected Ray Arrow
+                drawArrowhead(ctx, centerX, surfaceY, endX, endY, '#38bdf8');
+
+                // Draw Arcs and Angle Text
+                ctx.beginPath();
+                ctx.arc(centerX, surfaceY, 50, -Math.PI/2 - angleRad, -Math.PI/2, false);
+                ctx.strokeStyle = '#fbbf24';
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(centerX, surfaceY, 60, -Math.PI/2, -Math.PI/2 + angleRad, false);
+                ctx.strokeStyle = '#38bdf8';
+                ctx.stroke();
+
+                // Text
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.fillText(`î = ${angleDegrees}°`, centerX - 35 - (angleDegrees*0.3), surfaceY - 60);
+
+                ctx.fillStyle = '#38bdf8';
+                ctx.fillText(`r̂ = ${angleDegrees}°`, centerX + 35 + (angleDegrees*0.3), surfaceY - 70);
+            }
+
+            // Helper to draw arrowheads on lines
+            function drawArrowhead(context, fromX, fromY, toX, toY, color) {
+                const headlen = 15; // length of head in pixels
+                // Calculate halfway point
+                const midX = fromX + (toX - fromX) * 0.6;
+                const midY = fromY + (toY - fromY) * 0.6;
+                const angle = Math.atan2(toY - fromY, toX - fromX);
+                
+                context.beginPath();
+                context.moveTo(midX, midY);
+                context.lineTo(midX - headlen * Math.cos(angle - Math.PI / 6), midY - headlen * Math.sin(angle - Math.PI / 6));
+                context.lineTo(midX - headlen * Math.cos(angle + Math.PI / 6), midY - headlen * Math.sin(angle + Math.PI / 6));
+                context.lineTo(midX, midY);
+                context.fillStyle = color;
+                context.fill();
+            }
+
+            // Initial Draw
+            drawRayDiagram(parseInt(angleSlider.value));
+
+            // Slider Event Listener
+            angleSlider.addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                angleValueTxt.innerText = `${val}°`;
+                drawRayDiagram(val);
+            });
+
+
+            // --- 3. Chart.js Implementation for Field of Vision ---
+            const ctxChart = document.getElementById('fovChart').getContext('2d');
+            
+            const fovChart = new Chart(ctxChart, {
+                type: 'bar',
+                data: {
+                    labels: ['Plane Mirror', 'Convex Mirror'],
+                    datasets: [{
+                        label: 'Relative Field of View Coverage',
+                        data: [100, 280], // Conceptual data based on textbook description
+                        backgroundColor: [
+                            'rgba(148, 163, 184, 0.7)', // Slate for plane
+                            'rgba(245, 158, 11, 0.8)'   // Amber for convex
+                        ],
+                        borderColor: [
+                            'rgb(100, 116, 139)',
+                            'rgb(217, 119, 6)'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false, // CRITICAL: allows respecting container height
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            display: false // Hide arbitrary numbers to keep it conceptual
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 14,
+                                    family: "'Inter', sans-serif"
+                                },
+                                color: '#334155'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.dataIndex === 0) return 'Standard Field of View';
+                                    return 'Significantly Larger Field of View';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Handle functional navigation (smooth scroll)
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>

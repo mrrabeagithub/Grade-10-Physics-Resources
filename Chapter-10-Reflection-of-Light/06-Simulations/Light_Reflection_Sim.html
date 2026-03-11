@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Law of Reflection Simulation (By Rabih A.G.)</title>
+    
+    <!-- Tailwind CSS for robust styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- KaTeX for exact LaTeX mathematical rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        /* Base styles and Dark Mode Transitions */
+        body {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark body {
+            background-color: #1a202c; /* Tailwind gray-900 */
+            color: #e2e8f0; /* Tailwind gray-200 */
+        }
+        .dark .bg-white {
+            background-color: #2d3748 !important; /* Tailwind gray-800 */
+            color: #e2e8f0 !important;
+            border-color: #4a5568 !important;
+        }
+        .dark .text-gray-800 { color: #e2e8f0 !important; }
+        .dark .text-gray-600 { color: #cbd5e0 !important; }
+        .dark .bg-gray-100 { background-color: #4a5568 !important; }
+        .dark .bg-gray-200 { background-color: #2d3748 !important; }
+        .dark .border-gray-200 { border-color: #4a5568 !important; }
+        
+        canvas {
+            background-color: #0f172a; /* Slate 900 for high contrast laser visibility */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            height: auto;
+            touch-action: none; /* Prevent scrolling when dragging on canvas */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-6 min-h-screen font-sans">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header & Theme Controls -->
+        <div class="flex justify-between items-center mb-6 border-b border-gray-300 dark:border-gray-600 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold">Reflection of Light Simulation</h1>
+                <p class="text-lg text-gray-600 mt-1">Grade 10 Physics • <span class="font-semibold text-blue-600 dark:text-blue-400">By Rabih A.G.</span></p>
+            </div>
+            
+            <!-- Dark Mode Toggle Button (Strictly adhering to color requirements) -->
+            <button id="theme_toggle_button" class="p-3 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition focus:outline-none">
+                <!-- Sun Icon: Yellowish/Golden (#FFD700) -->
+                <svg id="sun_icon" class="hidden w-8 h-8" style="color: #FFD700;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 2.22a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-3.07 4.93a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm-4.22-2.22a1 1 0 01-1.415 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM2 10a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm3.07-4.93a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 5a5 5 0 100 10 5 5 0 000-10z" clip-rule="evenodd" />
+                </svg>
+                <!-- Moon Icon: Silver (#C0C0C0) -->
+                <svg id="moon_icon" class="w-8 h-8" style="color: #C0C0C0;" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Interactive Canvas -->
+            <div class="lg:col-span-2 space-y-4">
+                <div class="relative">
+                    <canvas id="simulation_canvas" width="800" height="500"></canvas>
+                    <div class="absolute top-4 right-4 text-white bg-black/60 px-4 py-2 rounded-lg backdrop-blur-sm border border-white/20">
+                        <span class="block text-sm font-mono">Incident Angle \(\hat{i}\) = <span id="display_angle_i" class="text-amber-400 font-bold">45°</span></span>
+                        <span class="block text-sm font-mono mt-1">Reflected Angle \(\hat{r}\) = <span id="display_angle_r" class="text-blue-400 font-bold">45°</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Physics Controls & Pedagogy -->
+            <div class="space-y-6">
+                <!-- Controls Panel -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h2 class="text-2xl font-bold mb-5 border-b pb-2">Experimental Setup</h2>
+                    
+                    <div class="space-y-6">
+                        <!-- Angle Slider -->
+                        <div>
+                            <label class="block text-sm font-bold mb-2">Angle of Incidence (\(\hat{i}\))</label>
+                            <input type="range" id="angle_of_incidence_slider" min="10" max="80" step="1" value="45" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>10°</span>
+                                <span>80°</span>
+                            </div>
+                        </div>
+
+                        <!-- Surface Type Selector -->
+                        <div>
+                            <label class="block text-sm font-bold mb-2">Surface Texture (The "Puddle Effect")</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button id="btn_regular" class="py-2 px-3 rounded-md bg-amber-500 text-white font-semibold transition shadow hover:bg-amber-600 focus:ring-2 focus:ring-amber-400">
+                                    Smooth Mirror<br><span class="text-xs font-normal">(Regular)</span>
+                                </button>
+                                <button id="btn_diffuse" class="py-2 px-3 rounded-md bg-gray-200 text-gray-700 font-semibold transition hover:bg-gray-300 focus:ring-2 focus:ring-gray-400">
+                                    Rough Surface<br><span class="text-xs font-normal">(Diffuse)</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <button id="clear_canvas_button" class="w-full py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-md transition shadow">
+                            Clear Photon Trails
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pedagogical Notes -->
+                <div class="bg-gray-100 p-6 rounded-xl border border-gray-200 shadow-sm text-sm">
+                    <h3 class="font-bold text-lg mb-3">Pedagogical Physics Notes</h3>
+                    
+                    <div class="space-y-4">
+                        <p>
+                            <strong>1. Laws of Reflection:</strong>
+                            <ul class="list-disc pl-5 mt-1">
+                                <li>The incident ray, normal, and reflected ray lie in the same plane.</li>
+                                <li><strong>Angle of Incidence = Angle of Reflection</strong> ($\hat{i} = \hat{r}$).</li>
+                            </ul>
+                        </p>
+
+                        <p class="p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-200 rounded border border-amber-300 dark:border-amber-700">
+                            <strong>Diffuse Reflection Insight:</strong> Even on a rough surface, the law $\hat{i} = \hat{r}$ remains <em>locally true</em> for every photon. The scattering occurs solely because the local normal vectors ($\vec{n}$) vary across the microscopic bumps!
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. UI & DARK MODE CONTROLS
+        // ==========================================
+        const theme_toggle_button = document.getElementById('theme_toggle_button');
+        const sun_icon = document.getElementById('sun_icon');
+        const moon_icon = document.getElementById('moon_icon');
+        const body_element = document.body;
+
+        theme_toggle_button.addEventListener('click', () => {
+            body_element.classList.toggle('dark');
+            if (body_element.classList.contains('dark')) {
+                sun_icon.classList.remove('hidden');
+                moon_icon.classList.add('hidden');
+            } else {
+                sun_icon.classList.add('hidden');
+                moon_icon.classList.remove('hidden');
+            }
+        });
+
+        // ==========================================
+        // 2. PHYSICS ENGINE & SIMULATION VARIABLES
+        // ==========================================
+        const simulation_canvas = document.getElementById('simulation_canvas');
+        const simulation_context = simulation_canvas.getContext('2d');
+        
+        let global_simulation_time = 0;
+        const integration_time_step = 0.016; // 60 FPS delta time
+        
+        // Highly verbose physics state variables
+        let angle_of_incidence_degrees = 45;
+        let selected_surface_type = 'regular'; // 'regular' or 'diffuse'
+        
+        let active_photons_array = [];
+        let microscopic_surface_segments = [];
+        let frame_counter = 0;
+
+        // Coordinates
+        const canvas_center_x = 400;
+        const global_surface_y = 400;
+
+        // ==========================================
+        // 3. SURFACE GENERATION
+        // ==========================================
+        // For diffuse reflection, we generate a persistent microscopic rough surface
+        function generate_microscopic_rough_surface() {
+            microscopic_surface_segments = [];
+            let current_position_x = 0;
+            
+            // Add initial point
+            microscopic_surface_segments.push({ x: current_position_x, y: global_surface_y });
+
+            while (current_position_x <= simulation_canvas.width) {
+                // Generate segments between 5 and 15 pixels wide
+                let segment_width = 5 + Math.random() * 10;
+                let next_position_x = current_position_x + segment_width;
+                
+                // Random height deviation (bumpiness) +/- 8 pixels
+                let vertical_deviation = (Math.random() - 0.5) * 16;
+                let next_position_y = global_surface_y + vertical_deviation;
+                
+                microscopic_surface_segments.push({ x: next_position_x, y: next_position_y });
+                current_position_x = next_position_x;
+            }
+        }
+
+        // ==========================================
+        // 4. KINEMATIC PHOTON CLASS
+        // ==========================================
+        class LightPhotonParticle {
+            constructor(initial_x, initial_y, initial_vel_x, initial_vel_y) {
+                this.position_x = initial_x;
+                this.position_y = initial_y;
+                
+                this.velocity_x = initial_vel_x;
+                this.velocity_y = initial_vel_y;
+                
+                // Homogeneous medium = zero acceleration
+                this.acceleration_x = 0;
+                this.acceleration_y = 0;
+                
+                // We store the path to draw continuous beams efficiently
+                this.history_of_positions = [{ x: initial_x, y: initial_y }];
+                
+                this.has_experienced_reflection = false;
+                this.is_active_in_bounds = true;
+            }
+
+            update_state_using_symplectic_euler(dt) {
+                if (!this.is_active_in_bounds) return;
+
+                // 1. Update Velocity (Symplectic Euler Requirement)
+                this.velocity_x = this.velocity_x + this.acceleration_x * dt;
+                this.velocity_y = this.velocity_y + this.acceleration_y * dt;
+
+                // 2. Update Position using new velocity
+                this.position_x = this.position_x + this.velocity_x * dt;
+                this.position_y = this.position_y + this.velocity_y * dt;
+
+                this.history_of_positions.push({ x: this.position_x, y: this.position_y });
+
+                // Bounds checking to cull off-screen particles
+                if (this.position_x < 0 || this.position_x > simulation_canvas.width || 
+                    this.position_y < 0 || this.position_y > simulation_canvas.height) {
+                    this.is_active_in_bounds = false;
+                }
+            }
+
+            // Handles the impact mathematics using vector reflection: v_new = v - 2(v . n)n
+            process_collision_with_surface() {
+                if (this.has_experienced_reflection) return;
+
+                // Fast proximity check
+                if (this.position_y < global_surface_y - 20) return;
+
+                if (selected_surface_type === 'regular') {
+                    // Smooth Mirror: Normal is perfectly vertical (0, -1)
+                    if (this.position_y >= global_surface_y) {
+                        this.position_y = global_surface_y; // Snap to surface boundary
+                        // Perfectly elastic reflection on Y axis
+                        this.velocity_y = -this.velocity_y; 
+                        this.has_experienced_reflection = true;
+                    }
+                } else if (selected_surface_type === 'diffuse') {
+                    // Rough Surface: Find the exact microscopic segment intersected
+                    for (let i = 0; i < microscopic_surface_segments.length - 1; i++) {
+                        let point1 = microscopic_surface_segments[i];
+                        let point2 = microscopic_surface_segments[i+1];
+                        
+                        if (this.position_x >= point1.x && this.position_x <= point2.x) {
+                            // Linear interpolation to find precise Y impact on the tilted segment
+                            let interpolation_factor = (this.position_x - point1.x) / (point2.x - point1.x);
+                            let segment_y_at_x = point1.y + interpolation_factor * (point2.y - point1.y);
+                            
+                            if (this.position_y >= segment_y_at_x) {
+                                this.position_y = segment_y_at_x; // Snap to bumpy surface
+                                
+                                // Calculate the normal vector (n) of this specific microscopic bump
+                                let delta_x = point2.x - point1.x;
+                                let delta_y = point2.y - point1.y;
+                                let segment_length = Math.sqrt(delta_x*delta_x + delta_y*delta_y);
+                                
+                                // Normal vector (-dy, dx)
+                                let surface_normal_vector_x = -delta_y / segment_length;
+                                let surface_normal_vector_y = delta_x / segment_length;
+                                
+                                // Ensure normal points "UP" (negative Y in canvas space)
+                                if (surface_normal_vector_y > 0) {
+                                    surface_normal_vector_x = -surface_normal_vector_x;
+                                    surface_normal_vector_y = -surface_normal_vector_y;
+                                }
+
+                                // Apply Vector Reflection Formula: v' = v - 2(v . n)n
+                                let dot_product = (this.velocity_x * surface_normal_vector_x) + (this.velocity_y * surface_normal_vector_y);
+                                
+                                this.velocity_x = this.velocity_x - 2 * dot_product * surface_normal_vector_x;
+                                this.velocity_y = this.velocity_y - 2 * dot_product * surface_normal_vector_y;
+                                
+                                this.has_experienced_reflection = true;
+                                break; // Exit loop once collided
+                            }
+                        }
+                    }
+                }
+            }
+
+            draw_photon_path(context) {
+                if (this.history_of_positions.length < 2) return;
+
+                context.beginPath();
+                // Golden laser color
+                context.strokeStyle = "rgba(255, 215, 0, 0.4)"; 
+                context.lineWidth = 2;
+                
+                context.moveTo(this.history_of_positions[0].x, this.history_of_positions[0].y);
+                for (let i = 1; i < this.history_of_positions.length; i++) {
+                    context.lineTo(this.history_of_positions[i].x, this.history_of_positions[i].y);
+                }
+                context.stroke();
+
+                // Draw the leading bright photon "head" if still on screen
+                if (this.is_active_in_bounds) {
+                    context.beginPath();
+                    context.fillStyle = "#ffffff";
+                    context.arc(this.position_x, this.position_y, 2, 0, Math.PI * 2);
+                    context.fill();
+                }
+            }
+        }
+
+        // ==========================================
+        // 5. BEAM EMISSION & DRAWING LOGIC
+        // ==========================================
+        function emit_parallel_laser_beam() {
+            const angle_radians = angle_of_incidence_degrees * (Math.PI / 180);
+            const photon_speed = 800; // pixels per second
+
+            // Calculate velocity components based on angle from the Normal (Vertical)
+            // Normal is UP. Light travels DOWN and RIGHT.
+            const initial_velocity_x = photon_speed * Math.sin(angle_radians);
+            const initial_velocity_y = photon_speed * Math.cos(angle_radians);
+
+            // Establish the source position far up and left of the central impact point
+            const source_distance = 450; 
+            const source_center_x = canvas_center_x - source_distance * Math.sin(angle_radians);
+            const source_center_y = global_surface_y - source_distance * Math.cos(angle_radians);
+
+            // Perpendicular vector to create beam width
+            const perpendicular_vector_x = Math.cos(angle_radians);
+            const perpendicular_vector_y = -Math.sin(angle_radians);
+
+            // Emit a "front" of 5 photons to represent a beam with physical width
+            for (let offset = -20; offset <= 20; offset += 10) {
+                let start_x = source_center_x + perpendicular_vector_x * offset;
+                let start_y = source_center_y + perpendicular_vector_y * offset;
+                
+                let new_photon = new LightPhotonParticle(start_x, start_y, initial_velocity_x, initial_velocity_y);
+                active_photons_array.push(new_photon);
+            }
+        }
+
+        function draw_static_environment() {
+            // Clear Canvas
+            simulation_context.fillStyle = "#0f172a";
+            simulation_context.fillRect(0, 0, simulation_canvas.width, simulation_canvas.height);
+
+            // Draw Global Normal Line (Dashed)
+            simulation_context.beginPath();
+            simulation_context.setLineDash([5, 5]);
+            simulation_context.moveTo(canvas_center_x, 50);
+            simulation_context.lineTo(canvas_center_x, global_surface_y);
+            simulation_context.strokeStyle = "rgba(255, 255, 255, 0.5)";
+            simulation_context.lineWidth = 2;
+            simulation_context.stroke();
+            simulation_context.setLineDash([]); // Reset
+            
+            // Label Normal
+            simulation_context.fillStyle = "rgba(255, 255, 255, 0.7)";
+            simulation_context.font = "14px monospace";
+            simulation_context.fillText("Normal", canvas_center_x - 24, 40);
+
+            // Draw Surface
+            simulation_context.beginPath();
+            if (selected_surface_type === 'regular') {
+                // Smooth Mirror Line
+                simulation_context.moveTo(0, global_surface_y);
+                simulation_context.lineTo(simulation_canvas.width, global_surface_y);
+                simulation_context.strokeStyle = "#94a3b8"; // Silver/Slate
+                simulation_context.lineWidth = 4;
+            } else {
+                // Diffuse Bumpy Line
+                simulation_context.moveTo(microscopic_surface_segments[0].x, microscopic_surface_segments[0].y);
+                for (let i = 1; i < microscopic_surface_segments.length; i++) {
+                    simulation_context.lineTo(microscopic_surface_segments[i].x, microscopic_surface_segments[i].y);
+                }
+                simulation_context.strokeStyle = "#78716c"; // Stone/Dirt color
+                simulation_context.lineWidth = 3;
+            }
+            simulation_context.stroke();
+
+            // Draw mirror hashing below the surface
+            simulation_context.beginPath();
+            for(let x = 10; x < simulation_canvas.width; x += 20) {
+                simulation_context.moveTo(x, global_surface_y + 2);
+                simulation_context.lineTo(x - 10, global_surface_y + 12);
+            }
+            simulation_context.strokeStyle = "#475569";
+            simulation_context.lineWidth = 2;
+            simulation_context.stroke();
+
+            // Draw Laser Pointer Source Rect
+            const angle_radians = angle_of_incidence_degrees * (Math.PI / 180);
+            const source_distance = 420; 
+            const source_x = canvas_center_x - source_distance * Math.sin(angle_radians);
+            const source_y = global_surface_y - source_distance * Math.cos(angle_radians);
+            
+            simulation_context.save();
+            simulation_context.translate(source_x, source_y);
+            simulation_context.rotate(Math.PI/2 - angle_radians); // Align with beam
+            
+            // Laser body
+            simulation_context.fillStyle = "#ef4444"; // Red pointer
+            simulation_context.fillRect(-30, -15, 60, 30);
+            simulation_context.fillStyle = "#1e293b"; 
+            simulation_context.fillRect(30, -10, 10, 20); // Nozzle
+            
+            simulation_context.restore();
+        }
+
+        // ==========================================
+        // 6. MAIN PHYSICS LOOP
+        // ==========================================
+        function execute_physics_simulation_loop() {
+            draw_static_environment();
+
+            // Emit a new cluster of photons every 8 frames to create continuous glowing beam
+            if (frame_counter % 8 === 0) {
+                emit_parallel_laser_beam();
+            }
+
+            // Update & Render all active photons
+            for (let i = active_photons_array.length - 1; i >= 0; i--) {
+                let photon = active_photons_array[i];
+                
+                // Kinematics & Collision
+                photon.update_state_using_symplectic_euler(integration_time_step);
+                photon.process_collision_with_surface();
+                
+                // Drawing
+                photon.draw_photon_path(simulation_context);
+
+                // Memory Management: Remove off-screen, finished photons
+                if (!photon.is_active_in_bounds) {
+                    active_photons_array.splice(i, 1);
+                }
+            }
+
+            global_simulation_time += integration_time_step;
+            frame_counter++;
+            requestAnimationFrame(execute_physics_simulation_loop);
+        }
+
+        // ==========================================
+        // 7. EVENT LISTENERS & INITIALIZATION
+        // ==========================================
+        const angle_slider = document.getElementById('angle_of_incidence_slider');
+        const display_angle_i = document.getElementById('display_angle_i');
+        const display_angle_r = document.getElementById('display_angle_r');
+        
+        const btn_regular = document.getElementById('btn_regular');
+        const btn_diffuse = document.getElementById('btn_diffuse');
+
+        function update_angle_displays() {
+            display_angle_i.innerText = `${angle_of_incidence_degrees}°`;
+            // If regular, reflection is exactly the same. If diffuse, it scatters, so we note 'Scattered'
+            display_angle_r.innerText = selected_surface_type === 'regular' ? `${angle_of_incidence_degrees}°` : 'Scattered';
+        }
+
+        angle_slider.addEventListener('input', (e) => {
+            angle_of_incidence_degrees = parseInt(e.target.value);
+            active_photons_array = []; // Clear canvas instantly on angle change for clarity
+            update_angle_displays();
+        });
+
+        btn_regular.addEventListener('click', () => {
+            selected_surface_type = 'regular';
+            btn_regular.classList.replace('bg-gray-200', 'bg-amber-500');
+            btn_regular.classList.replace('text-gray-700', 'text-white');
+            btn_diffuse.classList.replace('bg-amber-500', 'bg-gray-200');
+            btn_diffuse.classList.replace('text-white', 'text-gray-700');
+            active_photons_array = [];
+            update_angle_displays();
+        });
+
+        btn_diffuse.addEventListener('click', () => {
+            selected_surface_type = 'diffuse';
+            generate_microscopic_rough_surface(); // Generate a new random rocky surface
+            btn_diffuse.classList.replace('bg-gray-200', 'bg-amber-500');
+            btn_diffuse.classList.replace('text-gray-700', 'text-white');
+            btn_regular.classList.replace('bg-amber-500', 'bg-gray-200');
+            btn_regular.classList.replace('text-white', 'text-gray-700');
+            active_photons_array = [];
+            update_angle_displays();
+        });
+
+        document.getElementById('clear_canvas_button').addEventListener('click', () => {
+            active_photons_array = [];
+        });
+
+        // Application Start
+        window.onload = () => {
+            // 1. Ensure KaTeX mathematical parsing loads correctly without error
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, { 
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true}, 
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false}
+                    ] 
+                });
+            }
+
+            // 2. Initialize geometry and begin physics engine
+            generate_microscopic_rough_surface();
+            execute_physics_simulation_loop();
+        };
+
+    </script>
+</body>
+</html>

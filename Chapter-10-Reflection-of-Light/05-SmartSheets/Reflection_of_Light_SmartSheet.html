@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>G10 Physics: Reflection of Light</title>
+    <!-- MathJax for Formula Rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --primary: #60a5fa;
+            --primary-hover: #3b82f6;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin: 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .gap-4 { gap: 1rem; }
+        .w-full { width: 100%; }
+        .mt-4 { margin-top: 1rem; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: 700; }
+        .text-xl { font-size: 1.25rem; }
+        .text-sm { font-size: 0.875rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+
+        /* Inputs & Buttons */
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+
+        input:focus { outline: none; border-color: var(--primary); }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            touch-action: manipulation;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text-sub); }
+        .btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        /* Quiz Specifics */
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .option-card {
+            padding: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: flex-start;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .option-card:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .option-card.selected {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .option-letter {
+            font-weight: bold;
+            margin-right: 1rem;
+            color: var(--primary);
+            min-width: 24px;
+        }
+
+        .hint-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.25rem;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header Controls -->
+        <div class="header-controls">
+            <button class="icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌓</button>
+        </div>
+
+        <!-- VIEW: LOGIN -->
+        <div id="view-login">
+            <h1 class="text-xl font-bold text-center">Physics Smart-Sheet</h1>
+            <p class="text-center text-sub" style="color: var(--text-sub); margin-bottom: 2rem;">Chapter 10: Reflection of Light</p>
+            
+            <div id="login-error" class="hidden text-center" style="color: var(--danger); margin-bottom: 1rem;">Invalid Access Code</div>
+            
+            <label class="text-sm font-bold">Enter Access Code</label>
+            <input type="password" id="access-code" placeholder="4-digit code" maxlength="4" onkeyup="if(event.key === 'Enter') validateLogin()">
+            
+            <button class="btn-primary w-full" onclick="validateLogin()">Start Worksheet</button>
+            <p class="text-center text-sm mt-4" style="color: var(--text-sub);">G10 - 2024/2025</p>
+        </div>
+
+        <!-- VIEW: QUIZ -->
+        <div id="view-quiz" class="hidden">
+            <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+                <span class="font-bold" id="student-display-name">Student</span>
+                <span class="text-sm" style="color: var(--text-sub)">Q <span id="current-q-num">1</span> of 10</span>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+
+            <div id="question-container">
+                <!-- Dynamic Content Injected Here -->
+            </div>
+
+            <div id="hint-container" class="hidden hint-box"></div>
+
+            <div class="flex justify-between mt-4">
+                <button class="btn-outline" onclick="toggleHint()" id="btn-hint">💡 Show Hint</button>
+                <div class="flex gap-4">
+                    <button class="btn-outline hidden" id="btn-prev" onclick="nav(-1)">Back</button>
+                    <button class="btn-primary" id="btn-next" onclick="nav(1)">Next</button>
+                    <button class="btn-success hidden" id="btn-submit" onclick="submitQuiz()">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: RESULTS -->
+        <div id="view-results" class="hidden text-center">
+            <h1 class="text-xl font-bold">Worksheet Complete!</h1>
+            <div style="font-size: 4rem; font-weight: bold; color: var(--primary); margin: 2rem 0;">
+                <span id="final-score">0</span>%
+            </div>
+            <p id="submit-status" style="color: var(--text-sub);">Syncing with gradebook...</p>
+            <button class="btn-outline mt-4" onclick="window.print()">🖨️ Print / Save PDF</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * SMART-SHEET ARCHITECT CONFIGURATION
+ * Generated for: Grade 10
+ * Topic: Chapter 10 Reflection of Light
+ */
+
+const CONFIG = {
+    grade: "Grade 10",
+    topic: "Reflection of Light",
+    url: "https://script.google.com/macros/s/AKfycbzLD_apoepK6DnMOOww4SPts8HDYiXcPhITonGAVyyRiZ6y8EzysTmjoUzJeX7FQJ512A/exec",
+    students: {
+        "Teacher": "0000",
+        "Tutor": "1111",
+        "انس / زياد / الجندي": "9732", "براء / سعيد / ميناوي": "1590", "دانيال / علي / لاغا": "2083", 
+        "رام / زياد / عنتر": "1844", "سعد / ربيع / قلموني": "1977", "سعيد / محمد / عابدي": "2682", 
+        "عاصم / خليل / مكاوي": "1979", "عبد الرحمن / احمد / بركات": "7362", "عبد الرحمن / خالد / درويش": "9700", 
+        "عبد الرحمن / مصطفى / الست": "8928", "عبد الملك / مروان / عاصي": "7242", "عمر / عدنان / قرقوبي": "1950", 
+        "عمر / محمود / قدور": "9363", "غالب / طاهر / عطيه": "7843", "قصي / علاء الدين / قتة": "2146", 
+        "كريم / محمد سمير / اللحام": "5659", "محمد / احمد / السايس": "3327", "محمد / حسن / المصري": "1879", 
+        "محمد / سامر / المهاجر": "1385", "محمد كنان / عمران / قتة": "1148", "مروان / حسام / عبد الرحمن": "4776", 
+        "مصطفى / هاشم / عجم": "7894", "نور الدين / سيف الدين / الخالدي": "8297", "يوسف / خضر / باليظه": "1418"
+    }
+};
+
+const QUESTIONS = [
+    {
+        id: 1,
+        text: "What is the 'Normal' line in a reflection ray diagram?",
+        options: [
+            "A line parallel to the reflecting surface.",
+            "An imaginary line perpendicular (90°) to the reflecting surface.",
+            "The incoming light ray.",
+            "The bouncing light ray."
+        ],
+        correct: 1,
+        hint: "Think about the reference line we use to measure all angles in optics."
+    },
+    {
+        id: 2,
+        text: "Careful! If an incident ray strikes a mirror at an angle of <b>40° to the surface of the mirror</b>, what is the angle of reflection?",
+        options: [
+            "40°",
+            "50°",
+            "90°",
+            "100°"
+        ],
+        correct: 1,
+        hint: "The Law of Reflection states that Angle of Incidence = Angle of Reflection. But remember, both angles are measured from the Normal, NOT the surface! (90° - 40° = ?)"
+    },
+    {
+        id: 3,
+        text: "Why are we able to see non-luminous objects (like the walls of a room or paper) from any angle?",
+        options: [
+            "Due to regular (specular) reflection.",
+            "Due to diffuse reflection scattering light in many directions.",
+            "Because they emit their own light.",
+            "Due to the refraction of light inside them."
+        ],
+        correct: 1,
+        hint: "Smooth surfaces act like mirrors (regular reflection), but rough surfaces scatter light so everyone in the room can see them."
+    },
+    {
+        id: 4,
+        text: "Which of the following is <b>NOT</b> a characteristic of an image formed by a plane (flat) mirror?",
+        options: [
+            "It is virtual (cannot be projected).",
+            "It is upright (same way up).",
+            "It is larger than the object.",
+            "It is laterally inverted (left becomes right)."
+        ],
+        correct: 2,
+        hint: "When you look in your bathroom mirror, does your head look unusually large, or exactly the same size?"
+    },
+    {
+        id: 5,
+        text: "<b>Calculation:</b> You stand at the center of a giant clock. Light from 12 o'clock hits your flat mirror, and you reflect it exactly to 5 o'clock. What is your angle of incidence?",
+        options: [
+            "150°",
+            "75°",
+            "30°",
+            "60°"
+        ],
+        correct: 1,
+        hint: "Step 1: A full circle is 360° across 12 hours (1 hr = 30°). The total angle from 12 to 5 is 150°. Step 2: The Normal line splits the total angle perfectly in half to give the angle of incidence."
+    },
+    {
+        id: 6,
+        text: "<b>Advanced Calculation:</b> A light ray strikes a plane mirror with an angle of incidence of 35°. The mirror is then rotated by 10° while the incident ray remains fixed. What is the new angle between the incident ray and the reflected ray?",
+        options: [
+            "70°",
+            "90°",
+            "50° or 90°",
+            "25° or 45°"
+        ],
+        correct: 2,
+        hint: "If the mirror rotates 10°, the normal also rotates 10°. This makes the new angle of incidence either 35°+10°=45° or 35°-10°=25° (depending on rotation direction). The total angle between incident and reflected is 2*i. So, 2*45°=90° or 2*25°=50°."
+    },
+    {
+        id: 7,
+        text: "<b>Advanced Calculation:</b> Two plane mirrors are placed at a 60° angle to each other. A light ray strikes the first mirror at an angle of incidence of 40°. It reflects and then strikes the second mirror. What is the angle of reflection off the second mirror?",
+        options: [
+            "20°",
+            "40°",
+            "60°",
+            "80°"
+        ],
+        correct: 0,
+        hint: "Draw it! Triangle formed by the two normals and the ray between mirrors. Angle between normals = 180° - 60° = 120°. Inside the triangle, the angle at the first mirror is 90°-40°=50° from the surface, meaning the angle to the normal inside is 40°. The sum of angles in a triangle is 180. 180 = 120 + 40 + angle at 2nd mirror's normal. So angle at 2nd normal = 20°. Thus r = 20°."
+    },
+    {
+        id: 8,
+        text: "<b>Advanced Calculation:</b> A person who is 1.8m tall stands 2m in front of a vertical plane mirror. What is the minimum length the mirror must be for the person to see their entire body?",
+        options: [
+            "0.9m",
+            "1.8m",
+            "2.0m",
+            "3.6m"
+        ],
+        correct: 0,
+        hint: "Draw rays from the top of the head to the eyes, and from the feet to the eyes. Using similar triangles (because image distance = object distance), the mirror only needs to be half the height of the person, regardless of how far away they stand! (1.8m / 2 = 0.9m)."
+    },
+    {
+        id: 9,
+        text: "<b>Critical Thinking:</b> How can you increase your field of vision (see more area) when looking into a plane mirror?",
+        options: [
+            "Move farther away from the mirror.",
+            "Use a smaller mirror.",
+            "Get closer to the mirror.",
+            "Tilt the mirror slightly upwards."
+        ],
+        correct: 2,
+        hint: "Think about looking through a keyhole or a small window. How do you see more of the room on the other side? By backing up or moving in?"
+    },
+    {
+        id: 10,
+        text: "<b>Critical Thinking:</b> Why do some department-store windows slant inward at the bottom?",
+        options: [
+            "To increase the size of the virtual image of the clothes inside.",
+            "To cause diffuse reflection.",
+            "To reflect the glare from brightly lit buildings across the street downwards (away from shoppers' eyes).",
+            "To act like a convex mirror."
+        ],
+        correct: 2,
+        hint: "The law of reflection (i = r) means that if the window tilts down, the reflected light goes down toward the ground instead of directly into the eyes of the people walking by."
+    }
+];
+
+// STATE
+let currentUser = null;
+let currentQIndex = 0;
+let userAnswers = new Array(QUESTIONS.length).fill(null);
+
+// DOM ELEMENTS
+const dom = {
+    login: document.getElementById('view-login'),
+    quiz: document.getElementById('view-quiz'),
+    results: document.getElementById('view-results'),
+    inputCode: document.getElementById('access-code'),
+    errorMsg: document.getElementById('login-error'),
+    studentName: document.getElementById('student-display-name'),
+    qContainer: document.getElementById('question-container'),
+    progress: document.getElementById('progress-fill'),
+    currQNum: document.getElementById('current-q-num'),
+    hintBox: document.getElementById('hint-container'),
+    btnNext: document.getElementById('btn-next'),
+    btnPrev: document.getElementById('btn-prev'),
+    btnSubmit: document.getElementById('btn-submit')
+};
+
+// --- INITIALIZATION ---
+function validateLogin() {
+    const code = dom.inputCode.value.trim();
+    const studentName = Object.keys(CONFIG.students).find(name => CONFIG.students[name] === code);
+
+    if (studentName) {
+        currentUser = studentName;
+        dom.login.classList.add('hidden');
+        dom.quiz.classList.remove('hidden');
+        dom.studentName.innerText = studentName.split('/')[0]; // First name only for UI
+        loadQuestion(0);
+    } else {
+        dom.errorMsg.classList.remove('hidden');
+        dom.inputCode.value = '';
+    }
+}
+
+function loadQuestion(index) {
+    currentQIndex = index;
+    const q = QUESTIONS[index];
+    
+    // Update UI Stats
+    dom.progress.style.width = `${((index + 1) / QUESTIONS.length) * 100}%`;
+    dom.currQNum.innerText = index + 1;
+    
+    // Reset Hint
+    dom.hintBox.classList.add('hidden');
+    dom.hintBox.innerHTML = `<em>Hint:</em> ${q.hint}`;
+
+    // Build HTML
+    let html = `
+        <h2 class="text-xl font-bold mb-4">${q.text}</h2>
+        <div class="flex flex-col gap-2">
+    `;
+
+    q.options.forEach((opt, i) => {
+        const isSelected = userAnswers[index] === i ? 'selected' : '';
+        html += `
+            <div class="option-card ${isSelected}" onclick="selectOption(${i}, this)">
+                <div class="option-letter">${String.fromCharCode(65+i)}</div>
+                <div>${opt}</div>
+            </div>
+        `;
+    });
+    html += `</div>`;
+
+    dom.qContainer.innerHTML = html;
+    
+    // Button Logic
+    dom.btnPrev.classList.toggle('hidden', index === 0);
+    if (index === QUESTIONS.length - 1) {
+        dom.btnNext.classList.add('hidden');
+        dom.btnSubmit.classList.remove('hidden');
+    } else {
+        dom.btnNext.classList.remove('hidden');
+        dom.btnSubmit.classList.add('hidden');
+    }
+
+    // Retrigger MathJax if needed
+    if (window.MathJax) MathJax.typeset();
+}
+
+function selectOption(optIndex, cardElem) {
+    userAnswers[currentQIndex] = optIndex;
+    
+    // Visual update
+    const allOptions = document.querySelectorAll('.option-card');
+    allOptions.forEach(el => el.classList.remove('selected'));
+    cardElem.classList.add('selected');
+}
+
+function nav(direction) {
+    const newIndex = currentQIndex + direction;
+    if (newIndex >= 0 && newIndex < QUESTIONS.length) {
+        loadQuestion(newIndex);
+    }
+}
+
+function toggleHint() {
+    dom.hintBox.classList.toggle('hidden');
+}
+
+function toggleTheme() {
+    const body = document.body;
+    const current = body.getAttribute('data-theme');
+    body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+
+async function submitQuiz() {
+    // Prevent multiple submissions if accidental double tap
+    dom.btnSubmit.disabled = true;
+    dom.btnSubmit.innerText = "Submitting...";
+
+    // Calculate Score
+    let correctCount = 0;
+    let details = [];
+
+    QUESTIONS.forEach((q, i) => {
+        const userChoice = userAnswers[i];
+        const isCorrect = userChoice === q.correct;
+        if (isCorrect) correctCount++;
+        
+        const letter = userChoice !== null ? String.fromCharCode(65 + userChoice) : "Empty";
+        details.push(`Q${i+1}: ${letter}`);
+    });
+
+    const finalScore = Math.round((correctCount / QUESTIONS.length) * 100);
+
+    // Show Results View
+    dom.quiz.classList.add('hidden');
+    dom.results.classList.remove('hidden');
+    document.getElementById('final-score').innerText = finalScore;
+
+    // Send to Google Sheet
+    const payload = {
+        name: currentUser,
+        score: finalScore,
+        topic: CONFIG.topic,
+        answers: details.join(", ")
+    };
+
+    try {
+        await fetch(CONFIG.url, {
+            method: "POST",
+            mode: "no-cors", // Essential for Google Apps Script
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+        });
+        document.getElementById('submit-status').innerText = "✅ Successfully recorded in Grade 10 database.";
+        document.getElementById('submit-status').style.color = "var(--success)";
+    } catch (e) {
+        document.getElementById('submit-status').innerText = "⚠️ Network error. Please screenshot this page and show your teacher.";
+        document.getElementById('submit-status').style.color = "var(--danger)";
+        console.error(e);
+    }
+}
+</script>
+</body>
+</html>
