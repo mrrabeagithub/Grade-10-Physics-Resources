@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grade 10 Physics Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/relative/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -60,13 +61,14 @@
         <!-- Dynamic Grid -->
         <div id="file-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
 
-        <!-- States -->
+        <!-- Empty State -->
         <div id="empty-state" class="hidden text-center py-24 glass rounded-3xl border-dashed border-slate-700">
             <i class="fas fa-box-open text-4xl text-slate-700 mb-4"></i>
             <h3 class="text-xl font-bold text-slate-500">No resources found</h3>
             <p class="text-slate-600 text-sm">Resources for this module are currently being synchronized.</p>
         </div>
 
+        <!-- Loaders & Errors -->
         <div id="loader" class="text-center py-24">
             <i class="fas fa-atom fa-spin text-5xl text-blue-600"></i>
             <p class="text-xs text-slate-500 mt-4 font-bold uppercase tracking-widest">Accessing Grade 10 Repo...</p>
@@ -118,11 +120,13 @@
             const depth = segments.length;
             rootLink.href = depth > 0 ? "../".repeat(depth) + "index.html" : "index.html";
 
+            // Decoding segments to handle spaces and special chars in API calls
             const decodedSegments = segments.map(s => decodeURIComponent(s));
             const currentPath = decodedSegments.join('/');
-            const rawFolderName = decodedSegments[decodedSegments.length - 1] || 'Grade 10 Physics Portal';
             
+            const rawFolderName = decodedSegments[decodedSegments.length - 1] || 'Grade 10 Physics Portal';
             const cleanFolderName = rawFolderName.replace(/-/g, ' ');
+            
             titleElement.innerText = cleanFolderName;
             crumb.innerText = cleanFolderName;
 
@@ -132,7 +136,7 @@
             try {
                 const response = await fetch(apiUrl);
                 if (response.status === 403) throw new Error("API rate limit exceeded. Please wait 60 seconds.");
-                if (!response.ok) throw new Error(`Directory not found on GitHub.`);
+                if (!response.ok) throw new Error(`Directory not found on GitHub. Check path: ${currentPath}`);
 
                 allItems = await response.json();
                 loader.classList.add('hidden');
@@ -151,6 +155,7 @@
 
             const visibleItems = items.filter(item => {
                 const name = item.name.toLowerCase();
+                // Strict filter for system junk and index files
                 return !(name === 'index.html' || name === 'readme.md' || name.startsWith('.') || name === 'desktop.ini');
             });
 
@@ -186,6 +191,7 @@
                 let accentColor = 'group-hover:text-blue-400';
                 const parentFolder = window.location.pathname.toLowerCase();
 
+                // Advanced Icon Detection
                 if (item.type === 'dir') {
                     icon = 'fa-folder text-blue-500';
                     typeLabel = 'Learning Module';
@@ -202,12 +208,12 @@
                     typeLabel = 'PDF Resource';
                     if (parentFolder.includes('summary')) icon = 'fa-file-alt text-blue-400';
                     if (parentFolder.includes('work')) icon = 'fa-pen-nib text-orange-400';
-                } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+                } else if (['png', 'jpg', 'jpeg', 'svg'].includes(ext)) {
                     icon = 'fa-image text-sky-400';
                     typeLabel = 'Diagram';
                 }
 
-                const cleanName = decodeURIComponent(item.name).replace(/-/g, ' ');
+                const cleanName = sanitize(decodeURIComponent(item.name).replace(/-/g, ' '));
 
                 card.innerHTML = `
                     <div>
@@ -215,7 +221,7 @@
                             <i class="fas ${icon} text-2xl"></i>
                             <i class="fas fa-external-link-alt text-[9px] text-slate-600 group-hover:text-white transition"></i>
                         </div>
-                        <h4 class="font-bold text-slate-100 ${accentColor} transition line-clamp-2 mb-1 text-sm tracking-tight">${sanitize(cleanName)}</h4>
+                        <h4 class="font-bold text-slate-100 ${accentColor} transition line-clamp-2 mb-1 text-sm tracking-tight">${cleanName}</h4>
                         <p class="text-[9px] text-slate-500 uppercase tracking-widest font-black">${typeLabel}</p>
                     </div>
                     <div class="mt-5 pt-4 border-t border-white/5 flex justify-between items-center">
