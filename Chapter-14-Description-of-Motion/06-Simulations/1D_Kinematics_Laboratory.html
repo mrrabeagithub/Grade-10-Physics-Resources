@@ -111,22 +111,38 @@
                     <h2 class="text-xl font-bold mb-4">Driver Controls</h2>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <!-- Acceleration Slider -->
-                        <div>
-                            <label class="block text-sm font-bold mb-2 flex justify-between">
-                                <span>Engine Acceleration (\(a\))</span>
-                                <span id="accel_readout" class="font-mono text-red-600">0 m/s²</span>
-                            </label>
-                            <input type="range" id="acceleration_slider" min="-10" max="10" step="1" value="0" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer">
-                            <div class="flex justify-between text-xs text-slate-500 mt-1 font-mono">
-                                <span>-10 (Left)</span>
-                                <span>0</span>
-                                <span>+10 (Right)</span>
+                        <div class="space-y-6">
+                            <!-- Initial Velocity Slider -->
+                            <div>
+                                <label class="block text-sm font-bold mb-2 flex justify-between">
+                                    <span>Initial Velocity (\(v_0\))</span>
+                                    <span id="v0_readout" class="font-mono text-green-600">0 m/s</span>
+                                </label>
+                                <input type="range" id="v0_slider" min="-20" max="20" step="1" value="0" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer transition">
+                                <div class="flex justify-between text-xs text-slate-500 mt-1 font-mono">
+                                    <span>-20 (Left)</span>
+                                    <span>0</span>
+                                    <span>+20 (Right)</span>
+                                </div>
+                            </div>
+
+                            <!-- Acceleration Slider -->
+                            <div>
+                                <label class="block text-sm font-bold mb-2 flex justify-between">
+                                    <span>Engine Acceleration (\(a\))</span>
+                                    <span id="accel_readout" class="font-mono text-red-600">0 m/s²</span>
+                                </label>
+                                <input type="range" id="acceleration_slider" min="-10" max="10" step="1" value="0" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer transition">
+                                <div class="flex justify-between text-xs text-slate-500 mt-1 font-mono">
+                                    <span>-10 (Left)</span>
+                                    <span>0</span>
+                                    <span>+10 (Right)</span>
+                                </div>
                             </div>
                         </div>
 
                         <!-- Action Buttons -->
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 gap-3 h-fit">
                             <button id="btn_start" class="py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow transition">
                                 Start
                             </button>
@@ -481,9 +497,22 @@
         // Controls
         const accel_slider = document.getElementById('acceleration_slider');
         const accel_readout = document.getElementById('accel_readout');
+        
+        const v0_slider = document.getElementById('v0_slider');
+        const v0_readout = document.getElementById('v0_readout');
 
         const btn_start = document.getElementById('btn_start');
         const btn_pause = document.getElementById('btn_pause');
+
+        v0_slider.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            v0_readout.innerText = `${val} m/s`;
+            if (global_simulation_time === 0 && !is_simulation_running) {
+                current_velocity_x = val;
+                update_dashboard();
+                render_frame();
+            }
+        });
 
         btn_start.addEventListener('click', () => {
             is_simulation_running = true;
@@ -494,6 +523,10 @@
             btn_pause.innerText = "Pause";
             btn_pause.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-blue-500', 'hover:bg-blue-600');
             btn_pause.classList.add('bg-amber-500', 'hover:bg-amber-600');
+
+            // Disable v0 slider while running
+            v0_slider.disabled = true;
+            v0_slider.classList.add('opacity-50', 'cursor-not-allowed');
         });
 
         btn_pause.addEventListener('click', () => {
@@ -552,11 +585,14 @@
             btn_pause.classList.remove('bg-blue-500', 'hover:bg-blue-600');
             btn_pause.classList.add('bg-amber-500', 'hover:bg-amber-600');
 
+            // Re-enable v0 slider
+            v0_slider.disabled = false;
+            v0_slider.classList.remove('opacity-50', 'cursor-not-allowed');
+
             current_position_x = 0;
-            current_velocity_x = 0;
-            current_acceleration_x = 0;
-            accel_slider.value = 0;
-            accel_readout.innerText = `0 m/s²`;
+            current_velocity_x = parseFloat(v0_slider.value); // Use existing slider value
+            current_acceleration_x = parseFloat(accel_slider.value); // Keep accel slider value
+            
             chronophotography_markers = [];
             time_since_last_marker = 0;
             global_simulation_time = 0;
@@ -565,6 +601,9 @@
             pos_chart.data.datasets[0].data = []; pos_chart.update();
             vel_chart.data.datasets[0].data = []; vel_chart.update();
             acc_chart.data.datasets[0].data = []; acc_chart.update();
+
+            update_dashboard();
+            render_frame();
         });
 
         const btn_chrono = document.getElementById('btn_chronophotography');
