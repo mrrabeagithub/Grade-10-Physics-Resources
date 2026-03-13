@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1D Kinematics: Description of Motion (By Rabih A.G.)</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for The Trinity Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- KaTeX for LaTeX rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        /* Base styles and Dark Mode Transitions */
+        body {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark body {
+            background-color: #0f172a; /* Tailwind slate-900 */
+            color: #f8fafc; /* Tailwind slate-50 */
+        }
+        .dark .bg-white {
+            background-color: #1e293b !important; /* Tailwind slate-800 */
+            color: #f8fafc !important;
+            border-color: #334155 !important;
+        }
+        .dark .text-gray-800 { color: #f8fafc !important; }
+        .dark .text-gray-600 { color: #cbd5e1 !important; }
+        .dark .bg-gray-100 { background-color: #334155 !important; }
+        .dark .border-gray-200 { border-color: #475569 !important; }
+        
+        canvas {
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .dark canvas#simulation_canvas {
+            background-color: #020617; /* Very dark blue for track */
+        }
+        canvas#simulation_canvas {
+            background-color: #e2e8f0; /* Light gray track */
+            width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 p-6 min-h-screen font-sans">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header & Controls -->
+        <div class="flex justify-between items-center mb-6 border-b border-slate-300 dark:border-slate-700 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold">1D Kinematics Laboratory</h1>
+                <p class="text-lg text-slate-600 dark:text-slate-400 mt-1">Chapter 14: Description of Motion • <span class="font-semibold text-blue-600 dark:text-blue-400">By Rabih A.G.</span></p>
+            </div>
+            
+            <!-- Dark Mode Toggle -->
+            <button id="theme_toggle_button" class="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition focus:outline-none">
+                <!-- Sun Icon (Yellowish/Golden) -->
+                <svg id="sun_icon" class="hidden w-8 h-8" style="color: #FFD700;" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4.22 2.22a1 1 0 011.415 0l.707.707a1 1 0 01-1.414 1.414l-.707-.707a1 1 0 010-1.414zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zm-3.07 4.93a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 0zM10 16a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zm-4.22-2.22a1 1 0 01-1.415 0l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 010 1.414zM2 10a1 1 0 011-1h1a1 1 0 110 2H3a1 1 0 01-1-1zm3.07-4.93a1 1 0 010-1.414l.707-.707a1 1 0 011.414 1.414l-.707.707a1 1 0 01-1.414 0zM10 5a5 5 0 100 10 5 5 0 000-10z" clip-rule="evenodd" />
+                </svg>
+                <!-- Moon Icon (Silver) -->
+                <svg id="moon_icon" class="w-8 h-8" style="color: #C0C0C0;" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Simulation & Controls -->
+            <div class="xl:col-span-2 space-y-6">
+                
+                <!-- Main Dashboard Panel -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center text-center">
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Position (\(x\))</div>
+                        <div class="text-2xl font-mono font-bold" id="dashboard_x">0.0 m</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Velocity (\(\vec{v}\))</div>
+                        <div class="text-2xl font-mono font-bold text-green-600 dark:text-green-400" id="dashboard_v">0.0 m/s</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-slate-500 uppercase font-bold tracking-wider">Acceleration (\(\vec{a}\))</div>
+                        <div class="text-2xl font-mono font-bold text-red-600 dark:text-red-400" id="dashboard_a">0.0 m/s²</div>
+                    </div>
+                    <div class="bg-slate-100 dark:bg-slate-700 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600">
+                        <div class="text-xs text-slate-500 dark:text-slate-300 uppercase font-bold tracking-wider">Nature of Motion</div>
+                        <div class="text-xl font-bold uppercase tracking-wide" id="nature_of_motion">At Rest</div>
+                    </div>
+                </div>
+
+                <!-- Simulation Canvas -->
+                <div class="relative">
+                    <canvas id="simulation_canvas" width="800" height="250"></canvas>
+                    <div class="absolute bottom-2 left-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+                        Scale: 10px = 1m | Origin \(O\) is at Center
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                    <h2 class="text-xl font-bold mb-4">Driver Controls</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Acceleration Slider -->
+                        <div>
+                            <label class="block text-sm font-bold mb-2 flex justify-between">
+                                <span>Engine Acceleration (\(a\))</span>
+                                <span id="accel_readout" class="font-mono text-red-600">0 m/s²</span>
+                            </label>
+                            <input type="range" id="acceleration_slider" min="-10" max="10" step="1" value="0" class="w-full h-2 bg-slate-300 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between text-xs text-slate-500 mt-1 font-mono">
+                                <span>-10 (Left)</span>
+                                <span>0</span>
+                                <span>+10 (Right)</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <button id="btn_start" class="py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded shadow transition">
+                                Start
+                            </button>
+                            <button id="btn_pause" class="py-2 px-4 bg-amber-500 hover:bg-amber-600 opacity-50 cursor-not-allowed text-white font-bold rounded shadow transition" disabled>
+                                Pause
+                            </button>
+                            <button id="btn_brake" class="py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded shadow transition">
+                                Hard Brake (\(v \rightarrow 0\))
+                            </button>
+                            <button id="btn_reset" class="py-2 px-4 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded shadow transition">
+                                Reset to Origin
+                            </button>
+                            <button id="btn_chronophotography" class="col-span-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded shadow transition flex justify-center items-center">
+                                <span id="chrono_status">Enable Chronophotography (\(\tau = 0.5s\))</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: The Trinity Visualizations -->
+            <div class="space-y-6">
+                <!-- 1. Position vs Time Graph -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-center mb-1 text-slate-600 dark:text-slate-300">Position vs Time (\(x\) vs \(t\))</h3>
+                    <div style="height: 180px;"><canvas id="position_time_chart"></canvas></div>
+                </div>
+
+                <!-- 2. Velocity vs Time Graph -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-center mb-1 text-slate-600 dark:text-slate-300">Velocity vs Time (\(v\) vs \(t\))</h3>
+                    <div style="height: 180px;"><canvas id="velocity_time_chart"></canvas></div>
+                </div>
+
+                <!-- 3. Acceleration vs Time Graph -->
+                <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                    <h3 class="text-sm font-bold text-center mb-1 text-slate-600 dark:text-slate-300">Acceleration vs Time (\(a\) vs \(t\))</h3>
+                    <div style="height: 150px;"><canvas id="acceleration_time_chart"></canvas></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. UI & THEME LOGIC
+        // ==========================================
+        const theme_toggle_button = document.getElementById('theme_toggle_button');
+        const sun_icon = document.getElementById('sun_icon');
+        const moon_icon = document.getElementById('moon_icon');
+        const body_element = document.body;
+
+        theme_toggle_button.addEventListener('click', () => {
+            body_element.classList.toggle('dark');
+            const isDark = body_element.classList.contains('dark');
+            
+            if (isDark) {
+                sun_icon.classList.remove('hidden');
+                moon_icon.classList.add('hidden');
+                updateChartColors('#f8fafc'); // Light text for charts
+            } else {
+                sun_icon.classList.add('hidden');
+                moon_icon.classList.remove('hidden');
+                updateChartColors('#1e293b'); // Dark text for charts
+            }
+        });
+
+        // ==========================================
+        // 2. KINEMATICS ENGINE (Symplectic Euler)
+        // ==========================================
+        const integration_time_step = 0.016; // ~60 FPS
+        let global_simulation_time = 0;
+        
+        // Physics State
+        let current_position_x = 0;      // meters
+        let current_velocity_x = 0;      // m/s
+        let current_acceleration_x = 0;  // m/s^2
+        const mass_kg = 1.0;
+
+        // Scaling: 10 pixels = 1 meter
+        const pixels_per_meter = 10;
+        
+        // Chronophotography State
+        let is_chronophotography_active = false;
+        let chronophotography_markers = [];
+        let time_since_last_marker = 0;
+        const chrono_interval_tau = 0.5; // seconds
+
+        // Time State
+        let is_simulation_running = false;
+
+        function execute_kinematic_step(dt) {
+            // =========================================================
+            // CORE DIRECTIVE: Symplectic (Semi-Implicit) Euler
+            // 1. Update Velocity first
+            // 2. Update Position using the NEW velocity
+            // =========================================================
+            
+            current_velocity_x = current_velocity_x + current_acceleration_x * dt;
+            current_position_x = current_position_x + current_velocity_x * dt;
+
+            // Track boundaries (-38m to +38m relative to center)
+            const max_distance = 38; 
+            if (current_position_x > max_distance) {
+                current_position_x = max_distance;
+                current_velocity_x = 0; // Crash/Stop
+            } else if (current_position_x < -max_distance) {
+                current_position_x = -max_distance;
+                current_velocity_x = 0; // Crash/Stop
+            }
+
+            // Handle Chronophotography
+            if (is_chronophotography_active) {
+                time_since_last_marker += dt;
+                if (time_since_last_marker >= chrono_interval_tau) {
+                    chronophotography_markers.push(current_position_x);
+                    time_since_last_marker = 0;
+                }
+            }
+
+            global_simulation_time += dt;
+        }
+
+        // ==========================================
+        // 3. RENDERING & DASHBOARD
+        // ==========================================
+        const simulation_canvas = document.getElementById('simulation_canvas');
+        const ctx = simulation_canvas.getContext('2d');
+        const center_x = simulation_canvas.width / 2;
+        const track_y = simulation_canvas.height / 2 + 30;
+
+        // DOM Elements
+        const dash_x = document.getElementById('dashboard_x');
+        const dash_v = document.getElementById('dashboard_v');
+        const dash_a = document.getElementById('dashboard_a');
+        const dash_nature = document.getElementById('nature_of_motion');
+
+        function update_dashboard() {
+            dash_x.innerText = `${current_position_x.toFixed(1)} m`;
+            dash_v.innerText = `${current_velocity_x.toFixed(1)} m/s`;
+            dash_a.innerText = `${current_acceleration_x.toFixed(1)} m/s²`;
+
+            // Evaluate Nature of Motion based on dot product (v * a in 1D)
+            // As per curriculum: v.a > 0 = Accelerated, v.a < 0 = Decelerated
+            if (Math.abs(current_velocity_x) < 0.1 && Math.abs(current_acceleration_x) === 0) {
+                dash_nature.innerText = "At Rest";
+                dash_nature.className = "text-xl font-bold uppercase tracking-wide text-slate-500";
+            } else if (Math.abs(current_acceleration_x) === 0) {
+                dash_nature.innerText = "URM (Uniform)";
+                dash_nature.className = "text-xl font-bold uppercase tracking-wide text-blue-500";
+            } else {
+                let dot_product = current_velocity_x * current_acceleration_x;
+                if (dot_product > 0.01) {
+                    dash_nature.innerText = "Accelerated";
+                    dash_nature.className = "text-xl font-bold uppercase tracking-wide text-red-500";
+                } else if (dot_product < -0.01) {
+                    dash_nature.innerText = "Decelerated";
+                    dash_nature.className = "text-xl font-bold uppercase tracking-wide text-orange-500";
+                } else if (Math.abs(current_velocity_x) < 0.1 && Math.abs(current_acceleration_x) > 0) {
+                    // Starting from rest
+                    dash_nature.innerText = "Accelerated";
+                    dash_nature.className = "text-xl font-bold uppercase tracking-wide text-red-500";
+                }
+            }
+        }
+
+        function draw_arrow(context, fromx, fromy, tox, toy, color) {
+            if (fromx === tox && fromy === toy) return;
+            const headlen = 10; 
+            const dx = tox - fromx;
+            const dy = toy - fromy;
+            const angle = Math.atan2(dy, dx);
+            
+            context.beginPath();
+            context.moveTo(fromx, fromy);
+            context.lineTo(tox, toy);
+            context.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            context.moveTo(tox, toy);
+            context.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+            context.strokeStyle = color;
+            context.lineWidth = 3;
+            context.stroke();
+        }
+
+        function render_frame() {
+            // Clear Canvas
+            ctx.clearRect(0, 0, simulation_canvas.width, simulation_canvas.height);
+
+            const isDark = body_element.classList.contains('dark');
+
+            // Draw Coordinate Axis (Space Frame of Reference)
+            ctx.beginPath();
+            ctx.moveTo(20, track_y);
+            ctx.lineTo(simulation_canvas.width - 20, track_y);
+            ctx.strokeStyle = isDark ? "#475569" : "#94a3b8";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw Ticks and Labels
+            ctx.fillStyle = isDark ? "#cbd5e1" : "#475569";
+            ctx.font = "12px monospace";
+            ctx.textAlign = "center";
+            for (let i = -40; i <= 40; i += 10) {
+                let tick_x = center_x + i * pixels_per_meter;
+                ctx.beginPath();
+                ctx.moveTo(tick_x, track_y - 5);
+                ctx.lineTo(tick_x, track_y + 5);
+                ctx.stroke();
+                
+                // Origin Label
+                if (i === 0) {
+                    ctx.fillStyle = "#ef4444";
+                    ctx.fillText("O(0)", tick_x, track_y + 20);
+                    ctx.fillStyle = isDark ? "#cbd5e1" : "#475569";
+                } else {
+                    ctx.fillText(i.toString(), tick_x, track_y + 20);
+                }
+            }
+
+            // Draw Chronophotography Markers
+            ctx.fillStyle = "rgba(99, 102, 241, 0.5)"; // Indigo
+            for (let marker_x of chronophotography_markers) {
+                let px = center_x + marker_x * pixels_per_meter;
+                ctx.beginPath();
+                ctx.arc(px, track_y - 15, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Mobile Object (Car/Block)
+            const mobile_px = center_x + current_position_x * pixels_per_meter;
+            const mobile_py = track_y - 15;
+            
+            ctx.fillStyle = "#3b82f6"; // Blue block
+            ctx.fillRect(mobile_px - 15, mobile_py - 15, 30, 30);
+            ctx.strokeStyle = "#1e3a8a";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(mobile_px - 15, mobile_py - 15, 30, 30);
+
+            // Draw Velocity Vector (Green)
+            if (Math.abs(current_velocity_x) > 0.1) {
+                // Scale length for visibility
+                let v_len = current_velocity_x * 2; 
+                draw_arrow(ctx, mobile_px, mobile_py - 25, mobile_px + v_len, mobile_py - 25, "#22c55e");
+                ctx.fillStyle = "#22c55e";
+                ctx.fillText("v", mobile_px + v_len/2, mobile_py - 32);
+            }
+
+            // Draw Acceleration Vector (Red)
+            if (Math.abs(current_acceleration_x) > 0.1) {
+                let a_len = current_acceleration_x * 4;
+                draw_arrow(ctx, mobile_px, mobile_py - 45, mobile_px + a_len, mobile_py - 45, "#ef4444");
+                ctx.fillStyle = "#ef4444";
+                ctx.fillText("a", mobile_px + a_len/2, mobile_py - 52);
+            }
+        }
+
+        // ==========================================
+        // 4. THE TRINITY: CHART LOGIC
+        // ==========================================
+        let pos_chart, vel_chart, acc_chart;
+        let chart_update_counter = 0;
+
+        function init_charts() {
+            Chart.defaults.font.family = 'monospace';
+            Chart.defaults.color = '#475569';
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                elements: { point: { radius: 0 } },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        min: 0,
+                        max: 20, // Static Time Axis max
+                        title: { display: true, text: 'Time (s)' }
+                    }
+                },
+                plugins: { legend: { display: false } }
+            };
+
+            // 1. Position vs Time
+            pos_chart = new Chart(document.getElementById('position_time_chart'), {
+                type: 'line',
+                data: { datasets: [{ label: 'Position x (m)', data: [], borderColor: '#3b82f6', tension: 0.1, borderWidth: 2 }] },
+                options: { ...commonOptions, scales: { ...commonOptions.scales, y: { min: -40, max: 40, title: { display: true, text: 'Position x (m)' } } } }
+            });
+
+            // 2. Velocity vs Time
+            vel_chart = new Chart(document.getElementById('velocity_time_chart'), {
+                type: 'line',
+                data: { datasets: [{ label: 'Velocity v (m/s)', data: [], borderColor: '#22c55e', tension: 0.1, borderWidth: 2 }] },
+                options: { ...commonOptions, scales: { ...commonOptions.scales, y: { min: -20, max: 20, title: { display: true, text: 'Velocity v (m/s)' } } } }
+            });
+
+            // 3. Acceleration vs Time
+            acc_chart = new Chart(document.getElementById('acceleration_time_chart'), {
+                type: 'line',
+                data: { datasets: [{ label: 'Acceleration a (m/s²)', data: [], borderColor: '#ef4444', stepped: true, borderWidth: 2 }] },
+                options: { ...commonOptions, scales: { ...commonOptions.scales, y: { min: -12, max: 12, title: { display: true, text: 'Accel a (m/s²)' } } } }
+            });
+        }
+
+        function update_charts() {
+            chart_update_counter++;
+            if (chart_update_counter % 5 !== 0) return; // Downsample for performance
+
+            // Static time axis logic: stop plotting if time exceeds 20s
+            if (global_simulation_time > 20) return;
+
+            // Position
+            pos_chart.data.datasets[0].data.push({x: global_simulation_time, y: current_position_x});
+            pos_chart.update();
+
+            // Velocity
+            vel_chart.data.datasets[0].data.push({x: global_simulation_time, y: current_velocity_x});
+            vel_chart.update();
+
+            // Acceleration
+            acc_chart.data.datasets[0].data.push({x: global_simulation_time, y: current_acceleration_x});
+            acc_chart.update();
+        }
+
+        function updateChartColors(color) {
+            Chart.defaults.color = color;
+            const charts = [pos_chart, vel_chart, acc_chart];
+            charts.forEach(chart => {
+                if (chart.options.scales.x) chart.options.scales.x.ticks.color = color;
+                if (chart.options.scales.y) chart.options.scales.y.ticks.color = color;
+                if (chart.options.scales.x.title) chart.options.scales.x.title.color = color;
+                if (chart.options.scales.y.title) chart.options.scales.y.title.color = color;
+                chart.update();
+            });
+        }
+
+        // ==========================================
+        // 5. MAIN LOOP & EVENT LISTENERS
+        // ==========================================
+        function run_simulation_loop() {
+            if (is_simulation_running) {
+                execute_kinematic_step(integration_time_step);
+                update_charts();
+            }
+            // Dashboard & frame always update so UI reacts to slider changes while paused
+            update_dashboard(); 
+            render_frame();
+            requestAnimationFrame(run_simulation_loop);
+        }
+
+        // Controls
+        const accel_slider = document.getElementById('acceleration_slider');
+        const accel_readout = document.getElementById('accel_readout');
+
+        const btn_start = document.getElementById('btn_start');
+        const btn_pause = document.getElementById('btn_pause');
+
+        btn_start.addEventListener('click', () => {
+            is_simulation_running = true;
+            btn_start.disabled = true;
+            btn_start.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            btn_pause.disabled = false;
+            btn_pause.innerText = "Pause";
+            btn_pause.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-blue-500', 'hover:bg-blue-600');
+            btn_pause.classList.add('bg-amber-500', 'hover:bg-amber-600');
+        });
+
+        btn_pause.addEventListener('click', () => {
+            if (is_simulation_running) {
+                is_simulation_running = false;
+                btn_pause.innerText = "Resume";
+                btn_pause.classList.replace('bg-amber-500', 'bg-blue-500');
+                btn_pause.classList.replace('hover:bg-amber-600', 'hover:bg-blue-600');
+            } else {
+                is_simulation_running = true;
+                btn_pause.innerText = "Pause";
+                btn_pause.classList.replace('bg-blue-500', 'bg-amber-500');
+                btn_pause.classList.replace('hover:bg-blue-600', 'hover:bg-amber-600');
+            }
+        });
+
+        accel_slider.addEventListener('input', (e) => {
+            current_acceleration_x = parseFloat(e.target.value);
+            accel_readout.innerText = `${current_acceleration_x} m/s²`;
+        });
+
+        document.getElementById('btn_brake').addEventListener('click', () => {
+            // Apply opposite acceleration to simulate braking
+            if (current_velocity_x > 0) {
+                current_acceleration_x = -10;
+            } else if (current_velocity_x < 0) {
+                current_acceleration_x = 10;
+            } else {
+                current_acceleration_x = 0;
+            }
+            accel_slider.value = current_acceleration_x;
+            accel_readout.innerText = `${current_acceleration_x} m/s²`;
+            
+            // Auto stop when close to 0 to prevent oscillating backwards
+            let brake_check = setInterval(() => {
+                if (Math.abs(current_velocity_x) < 0.5) {
+                    current_velocity_x = 0;
+                    current_acceleration_x = 0;
+                    accel_slider.value = 0;
+                    accel_readout.innerText = `0 m/s²`;
+                    clearInterval(brake_check);
+                }
+            }, 100);
+        });
+
+        document.getElementById('btn_reset').addEventListener('click', () => {
+            // Reset Time State
+            is_simulation_running = false;
+            
+            btn_start.disabled = false;
+            btn_start.classList.remove('opacity-50', 'cursor-not-allowed');
+            
+            btn_pause.disabled = true;
+            btn_pause.innerText = "Pause";
+            btn_pause.classList.add('opacity-50', 'cursor-not-allowed');
+            btn_pause.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+            btn_pause.classList.add('bg-amber-500', 'hover:bg-amber-600');
+
+            current_position_x = 0;
+            current_velocity_x = 0;
+            current_acceleration_x = 0;
+            accel_slider.value = 0;
+            accel_readout.innerText = `0 m/s²`;
+            chronophotography_markers = [];
+            time_since_last_marker = 0;
+            global_simulation_time = 0;
+            
+            // Clear charts
+            pos_chart.data.datasets[0].data = []; pos_chart.update();
+            vel_chart.data.datasets[0].data = []; vel_chart.update();
+            acc_chart.data.datasets[0].data = []; acc_chart.update();
+        });
+
+        const btn_chrono = document.getElementById('btn_chronophotography');
+        const chrono_status = document.getElementById('chrono_status');
+        btn_chrono.addEventListener('click', () => {
+            is_chronophotography_active = !is_chronophotography_active;
+            if (is_chronophotography_active) {
+                btn_chrono.classList.replace('bg-indigo-600', 'bg-red-600');
+                btn_chrono.classList.replace('hover:bg-indigo-700', 'hover:bg-red-700');
+                chrono_status.innerText = "Disable Chronophotography";
+                chronophotography_markers = []; // Clear old markers
+                time_since_last_marker = 0;
+            } else {
+                btn_chrono.classList.replace('bg-red-600', 'bg-indigo-600');
+                btn_chrono.classList.replace('hover:bg-red-700', 'hover:bg-indigo-700');
+                chrono_status.innerText = "Enable Chronophotography (τ = 0.5s)";
+            }
+        });
+
+        // Initialize
+        window.onload = () => {
+            // Render KaTeX after DOM is ready
+            if (typeof renderMathInElement === 'function') {
+                renderMathInElement(document.body, { 
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true}, 
+                        {left: '\\(', right: '\\)', display: false}
+                    ] 
+                });
+            }
+            init_charts();
+            run_simulation_loop();
+        };
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>G10 Physics: Description of Motion</title>
+    <!-- MathJax for Formula Rendering -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --border: #e2e8f0;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --primary: #60a5fa;
+            --primary-hover: #3b82f6;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background-color 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 750px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin: 1rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .gap-4 { gap: 1rem; }
+        .w-full { width: 100%; }
+        .mt-4 { margin-top: 1rem; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: 700; }
+        .text-xl { font-size: 1.25rem; }
+        .text-sm { font-size: 0.875rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+
+        /* Inputs & Buttons */
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-color);
+            color: var(--text-main);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            box-sizing: border-box;
+        }
+
+        input:focus { outline: none; border-color: var(--primary); }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            touch-action: manipulation;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-outline { background: transparent; border: 2px solid var(--border); color: var(--text-sub); }
+        .btn-outline:hover { border-color: var(--text-main); color: var(--text-main); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+
+        /* Quiz Specifics */
+        .progress-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .option-card {
+            padding: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: flex-start;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .option-card:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .option-card.selected {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .option-letter {
+            font-weight: bold;
+            margin-right: 1rem;
+            color: var(--primary);
+            min-width: 24px;
+        }
+
+        .hint-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .header-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0.25rem;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header Controls -->
+        <div class="header-controls">
+            <button class="icon-btn" onclick="toggleTheme()" title="Toggle Dark Mode">🌓</button>
+        </div>
+
+        <!-- VIEW: LOGIN -->
+        <div id="view-login">
+            <h1 class="text-xl font-bold text-center">Physics Smart-Sheet</h1>
+            <p class="text-center text-sub" style="color: var(--text-sub); margin-bottom: 2rem;">Chapter 14: Description of Motion</p>
+            
+            <div id="login-error" class="hidden text-center" style="color: var(--danger); margin-bottom: 1rem;">Invalid Access Code</div>
+            
+            <label class="text-sm font-bold">Enter Access Code</label>
+            <input type="password" id="access-code" placeholder="4-digit code" maxlength="4" onkeyup="if(event.key === 'Enter') validateLogin()">
+            
+            <button class="btn-primary w-full" onclick="validateLogin()">Start Worksheet</button>
+            <p class="text-center text-sm mt-4" style="color: var(--text-sub);">G10 - 2025/2026</p>
+        </div>
+
+        <!-- VIEW: QUIZ -->
+        <div id="view-quiz" class="hidden">
+            <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+                <span class="font-bold" id="student-display-name">Student</span>
+                <span class="text-sm" style="color: var(--text-sub)">Q <span id="current-q-num">1</span> of 10</span>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+
+            <div id="question-container">
+                <!-- Dynamic Content Injected Here -->
+            </div>
+
+            <div id="hint-container" class="hidden hint-box"></div>
+
+            <div class="flex justify-between mt-4">
+                <button class="btn-outline" onclick="toggleHint()" id="btn-hint">💡 Show Hint</button>
+                <div class="flex gap-4">
+                    <button class="btn-outline hidden" id="btn-prev" onclick="nav(-1)">Back</button>
+                    <button class="btn-primary" id="btn-next" onclick="nav(1)">Next</button>
+                    <button class="btn-success hidden" id="btn-submit" onclick="submitQuiz()">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: RESULTS -->
+        <div id="view-results" class="hidden text-center">
+            <h1 class="text-xl font-bold">Worksheet Complete!</h1>
+            <div style="font-size: 4rem; font-weight: bold; color: var(--primary); margin: 2rem 0;">
+                <span id="final-score">0</span>%
+            </div>
+            <p id="submit-status" style="color: var(--text-sub);">Syncing with gradebook...</p>
+            <button class="btn-outline mt-4" onclick="window.print()">🖨️ Print / Save PDF</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * SMART-SHEET ARCHITECT CONFIGURATION
+ * Generated for: Grade 10
+ * Topic: Chapter 14 Description of Motion
+ */
+
+const CONFIG = {
+    grade: "Grade 10",
+    topic: "Ch 14: Description of Motion",
+    url: "https://script.google.com/macros/s/AKfycbzLD_apoepK6DnMOOww4SPts8HDYiXcPhITonGAVyyRiZ6y8EzysTmjoUzJeX7FQJ512A/exec",
+    students: {
+        "Teacher": "0000",
+        "Tutor": "1111",
+        "انس / زياد / الجندي": "9732", "براء / سعيد / ميناوي": "1590", "دانيال / علي / لاغا": "2083", 
+        "رام / زياد / عنتر": "1844", "سعد / ربيع / قلموني": "1977", "سعيد / محمد / عابدي": "2682", 
+        "عاصم / خليل / مكاوي": "1979", "عبد الرحمن / احمد / بركات": "7362", "عبد الرحمن / خالد / درويش": "9700", 
+        "عبد الرحمن / مصطفى / الست": "8928", "عبد الملك / مروان / عاصي": "7242", "عمر / عدنان / قرقوبي": "1950", 
+        "عمر / محمود / قدور": "9363", "غالب / طاهر / عطيه": "7843", "قصي / علاء الدين / قتة": "2146", 
+        "كريم / محمد سمير / اللحام": "5659", "محمد / احمد / السايس": "3327", "محمد / حسن / المصري": "1879", 
+        "محمد / سامر / المهاجر": "1385", "محمد كنان / عمران / قتة": "1148", "مروان / حسام / عبد الرحمن": "4776", 
+        "مصطفى / هاشم / عجم": "7894", "نور الدين / سيف الدين / الخالدي": "8297", "يوسف / خضر / باليظه": "1418"
+    }
+};
+
+const QUESTIONS = [
+    {
+        id: 1,
+        text: "In Physics, why do we say that 'motion is relative'?",
+        options: [
+            "Because an object's speed depends entirely on its weight.",
+            "Because whether an object is at rest or in motion depends entirely on the chosen Frame of Reference.",
+            "Because an object in motion will eventually come to rest relative to gravity.",
+            "Because motion only occurs when a force is applied relative to the object."
+        ],
+        correct: 1,
+        hint: "Think about sitting in a moving car. To the driver next to you, you are at rest. To a person standing on the sidewalk, you are moving."
+    },
+    {
+        id: 2,
+        text: "Which branch of mechanics describes <i>how</i> an object moves (its position, velocity, and acceleration) without considering the <i>forces</i> that caused the motion?",
+        options: [
+            "Dynamics",
+            "Statics",
+            "Kinematics",
+            "Thermodynamics"
+        ],
+        correct: 2,
+        hint: "Dynamics deals with forces (like tension, weight, friction). The other branch just describes the path and speed."
+    },
+    {
+        id: 3,
+        text: "A student walks 40 m East to the store, realizes they forgot their wallet, and walks 10 m West back toward their house. What is their total distance traveled (\\(d\\)) and their displacement (\\(\\Delta x\\)) from the start?",
+        options: [
+            "d = 30 m, Δx = +30 m",
+            "d = 50 m, Δx = +50 m",
+            "d = 50 m, Δx = +30 m",
+            "d = 30 m, Δx = +50 m"
+        ],
+        correct: 2,
+        hint: "Distance is the total steps taken (40 + 10). Displacement is the straight-line difference between the final position and initial position (40 - 10)."
+    },
+    {
+        id: 4,
+        text: "A car on the highway is traveling at \\(90 \\text{ km/h}\\). What is this speed converted to standard SI units (\\(\\text{m/s}\\))?",
+        options: [
+            "20 m/s",
+            "25 m/s",
+            "324 m/s",
+            "15 m/s"
+        ],
+        correct: 1,
+        hint: "To convert from km/h to m/s, you divide by 3.6. (Because 1 km = 1000m, and 1 hour = 3600s)."
+    },
+    {
+        id: 5,
+        text: "If an object moves with a constant velocity (\\(\\vec{v} = \\text{constant}\\)), what can we conclude about its acceleration (\\(\\vec{a}\\))?",
+        options: [
+            "The acceleration is constant but not zero.",
+            "The acceleration is increasing.",
+            "The acceleration is exactly zero.",
+            "The acceleration is negative."
+        ],
+        correct: 2,
+        hint: "Acceleration measures the <i>rate of change</i> of velocity. If the velocity doesn't change, what is the rate of change?"
+    },
+    {
+        id: 6,
+        text: "An object's velocity vector \\(\\vec{v}\\) and acceleration vector \\(\\vec{a}\\) are pointing in <b>opposite</b> directions (meaning their dot product \\(\\vec{v} \\cdot \\vec{a} < 0\\)). What is the nature of the object's motion?",
+        options: [
+            "Uniform Rectilinear Motion",
+            "Accelerated Rectilinear Motion",
+            "Decelerated Rectilinear Motion",
+            "Curvilinear Motion"
+        ],
+        correct: 2,
+        hint: "If velocity is pushing you forward, but acceleration is pulling you backward, what happens to your speed?"
+    },
+    {
+        id: 7,
+        text: "<b>Calculation:</b> In a chronophotography recording with a time interval \\(\\tau = 0.1\\text{ s}\\), the positions of a mobile are \\(M_1\\), \\(M_2\\), and \\(M_3\\). The physical distance from \\(M_1\\) to \\(M_3\\) is measured to be \\(12\\text{ cm}\\). What is the instantaneous speed \\(v_2\\) at point \\(M_2\\) in m/s?",
+        options: [
+            "1.2 m/s",
+            "0.6 m/s",
+            "120 m/s",
+            "6.0 m/s"
+        ],
+        correct: 1,
+        hint: "Formula: \\(v_2 = \\frac{M_1 M_3}{2\\tau}\\). First, convert 12 cm to meters (0.12 m). Then divide by \\(2 \\times 0.1\\)."
+    },
+    {
+        id: 8,
+        text: "<b>Brain Stretcher:</b> A train travels \\(100\\text{ km}\\) in \\(2\\text{ hours}\\). It then stops at a station for \\(1\\text{ hour}\\). Finally, it travels another \\(50\\text{ km}\\) in \\(1\\text{ hour}\\). What is the average speed (\\(v_{av}\\)) for the <b>entire</b> journey?",
+        options: [
+            "50.0 km/h",
+            "37.5 km/h",
+            "75.0 km/h",
+            "30.0 km/h"
+        ],
+        correct: 1,
+        hint: "Average speed is TOTAL distance divided by TOTAL time. Do not forget to include the time spent stopped at the station in your total time!"
+    },
+    {
+        id: 9,
+        text: "<b>Brain Stretcher:</b> In a 1D coordinate system, an object starts at position \\(x_i = -5\\text{ m}\\). It moves to position \\(x_f = 15\\text{ m}\\) in a duration of \\(\\Delta t = 4\\text{ s}\\). What is the average velocity of the object?",
+        options: [
+            "2.5 m/s",
+            "5.0 m/s",
+            "-5.0 m/s",
+            "10.0 m/s"
+        ],
+        correct: 1,
+        hint: "First find the displacement: \\(\\Delta x = x_f - x_i = 15 - (-5)\\). Then divide by the time \\(\\Delta t\\)."
+    },
+    {
+        id: 10,
+        text: "<b>Advanced Chronophotography:</b> A recording uses a time interval \\(\\tau = 1.0\\text{ s}\\). The positions on an x-axis are: \\(x_0 = 0\\text{ m}\\), \\(x_1 = 2\\text{ m}\\), \\(x_2 = 6\\text{ m}\\), \\(x_3 = 12\\text{ m}\\), \\(x_4 = 20\\text{ m}\\). Calculate the instantaneous acceleration \\(a_2\\) at point \\(x_2\\).",
+        options: [
+            "1 m/s²",
+            "2 m/s²",
+            "3 m/s²",
+            "4 m/s²"
+        ],
+        correct: 1,
+        hint: "<b>Step 1:</b> Find \\(v_1\\) using \\(x_0\\) and \\(x_2\\).<br><b>Step 2:</b> Find \\(v_3\\) using \\(x_2\\) and \\(x_4\\).<br><b>Step 3:</b> Use the acceleration formula \\(a_2 = \\frac{v_3 - v_1}{2\\tau}\\)."
+    }
+];
+
+// STATE
+let currentUser = null;
+let currentQIndex = 0;
+let userAnswers = new Array(QUESTIONS.length).fill(null);
+
+// DOM ELEMENTS
+const dom = {
+    login: document.getElementById('view-login'),
+    quiz: document.getElementById('view-quiz'),
+    results: document.getElementById('view-results'),
+    inputCode: document.getElementById('access-code'),
+    errorMsg: document.getElementById('login-error'),
+    studentName: document.getElementById('student-display-name'),
+    qContainer: document.getElementById('question-container'),
+    progress: document.getElementById('progress-fill'),
+    currQNum: document.getElementById('current-q-num'),
+    hintBox: document.getElementById('hint-container'),
+    btnNext: document.getElementById('btn-next'),
+    btnPrev: document.getElementById('btn-prev'),
+    btnSubmit: document.getElementById('btn-submit')
+};
+
+// --- INITIALIZATION ---
+function validateLogin() {
+    const code = dom.inputCode.value.trim();
+    const studentName = Object.keys(CONFIG.students).find(name => CONFIG.students[name] === code);
+
+    if (studentName) {
+        currentUser = studentName;
+        dom.login.classList.add('hidden');
+        dom.quiz.classList.remove('hidden');
+        dom.studentName.innerText = studentName.split('/')[0]; // First name only for UI
+        loadQuestion(0);
+    } else {
+        dom.errorMsg.classList.remove('hidden');
+        dom.inputCode.value = '';
+    }
+}
+
+function loadQuestion(index) {
+    currentQIndex = index;
+    const q = QUESTIONS[index];
+    
+    // Update UI Stats
+    dom.progress.style.width = `${((index + 1) / QUESTIONS.length) * 100}%`;
+    dom.currQNum.innerText = index + 1;
+    
+    // Reset Hint
+    dom.hintBox.classList.add('hidden');
+    dom.hintBox.innerHTML = `<em>💡 Hint:</em> ${q.hint}`;
+
+    // Build HTML
+    let html = `
+        <h2 class="text-xl font-bold mb-4" style="line-height: 1.6;">${q.text}</h2>
+        <div class="flex flex-col gap-2">
+    `;
+
+    q.options.forEach((opt, i) => {
+        const isSelected = userAnswers[index] === i ? 'selected' : '';
+        html += `
+            <div class="option-card ${isSelected}" onclick="selectOption(${i}, this)">
+                <div class="option-letter">${String.fromCharCode(65+i)}</div>
+                <div style="width: 100%;">${opt}</div>
+            </div>
+        `;
+    });
+    html += `</div>`;
+
+    dom.qContainer.innerHTML = html;
+    
+    // Button Logic
+    dom.btnPrev.classList.toggle('hidden', index === 0);
+    if (index === QUESTIONS.length - 1) {
+        dom.btnNext.classList.add('hidden');
+        dom.btnSubmit.classList.remove('hidden');
+    } else {
+        dom.btnNext.classList.remove('hidden');
+        dom.btnSubmit.classList.add('hidden');
+    }
+
+    // Retrigger MathJax after injecting dynamic content for both Question AND Hint containers
+    if (window.MathJax) {
+        MathJax.typesetPromise([dom.qContainer, dom.hintBox]).catch(function (err) {
+            console.log('MathJax error: ', err.message);
+        });
+    }
+}
+
+function selectOption(optIndex, cardElem) {
+    userAnswers[currentQIndex] = optIndex;
+    
+    // Visual update
+    const allOptions = document.querySelectorAll('.option-card');
+    allOptions.forEach(el => el.classList.remove('selected'));
+    cardElem.classList.add('selected');
+}
+
+function nav(direction) {
+    const newIndex = currentQIndex + direction;
+    if (newIndex >= 0 && newIndex < QUESTIONS.length) {
+        loadQuestion(newIndex);
+    }
+}
+
+function toggleHint() {
+    dom.hintBox.classList.toggle('hidden');
+}
+
+function toggleTheme() {
+    const body = document.body;
+    const current = body.getAttribute('data-theme');
+    body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+}
+
+async function submitQuiz() {
+    // Prevent multiple submissions
+    dom.btnSubmit.disabled = true;
+    dom.btnSubmit.innerText = "Submitting...";
+
+    // Calculate Score
+    let correctCount = 0;
+    let details = [];
+
+    QUESTIONS.forEach((q, i) => {
+        const userChoice = userAnswers[i];
+        const isCorrect = userChoice === q.correct;
+        if (isCorrect) correctCount++;
+        
+        const letter = userChoice !== null ? String.fromCharCode(65 + userChoice) : "Empty";
+        details.push(`Q${i+1}: ${letter}`);
+    });
+
+    const finalScore = Math.round((correctCount / QUESTIONS.length) * 100);
+
+    // Show Results View
+    dom.quiz.classList.add('hidden');
+    dom.results.classList.remove('hidden');
+    document.getElementById('final-score').innerText = finalScore;
+
+    // Send to Google Sheet
+    const payload = {
+        name: currentUser,
+        score: finalScore,
+        topic: CONFIG.topic,
+        answers: details.join(", ")
+    };
+
+    try {
+        await fetch(CONFIG.url, {
+            method: "POST",
+            mode: "no-cors", 
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(payload)
+        });
+        document.getElementById('submit-status').innerText = "✅ Successfully recorded in Grade 10 database.";
+        document.getElementById('submit-status').style.color = "var(--success)";
+    } catch (e) {
+        document.getElementById('submit-status').innerText = "⚠️ Network error. Please screenshot this page and show your teacher.";
+        document.getElementById('submit-status').style.color = "var(--danger)";
+        console.error(e);
+    }
+}
+</script>
+</body>
+</html>
