@@ -45,7 +45,7 @@
 
         .container {
             width: 100%;
-            max-width: 750px;
+            max-width: 700px;
             background: var(--card-bg);
             border-radius: 16px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -128,7 +128,7 @@
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
-            align-items: flex-start;
+            align-items: flex-start; 
             text-align: left;
             width: 100%;
             box-sizing: border-box;
@@ -158,7 +158,7 @@
             margin-top: 1rem;
             border-radius: 4px;
             color: var(--text-main);
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             line-height: 1.5;
         }
 
@@ -192,7 +192,7 @@
         <!-- VIEW: LOGIN -->
         <div id="view-login">
             <h1 class="text-xl font-bold text-center">Physics Smart-Sheet</h1>
-            <p class="text-center text-sub" style="color: var(--text-sub); margin-bottom: 2rem;">Chapter 14: Description of Motion</p>
+            <p class="text-center text-sub" style="color: var(--text-sub); margin-bottom: 2rem;">Chapter 2: Description of Motion</p>
             
             <div id="login-error" class="hidden text-center" style="color: var(--danger); margin-bottom: 1rem;">Invalid Access Code</div>
             
@@ -200,7 +200,7 @@
             <input type="password" id="access-code" placeholder="4-digit code" maxlength="4" onkeyup="if(event.key === 'Enter') validateLogin()">
             
             <button class="btn-primary w-full" onclick="validateLogin()">Start Worksheet</button>
-            <p class="text-center text-sm mt-4" style="color: var(--text-sub);">G10 - 2025/2026</p>
+            <p class="text-center text-sm mt-4" style="color: var(--text-sub);">G10 - 2024/2025</p>
         </div>
 
         <!-- VIEW: QUIZ -->
@@ -245,13 +245,13 @@
 /**
  * SMART-SHEET ARCHITECT CONFIGURATION
  * Generated for: Grade 10
- * Topic: Chapter 14 Description of Motion
+ * Topic: Description of Motion
  */
 
 const CONFIG = {
     grade: "Grade 10",
-    topic: "Ch 14: Description of Motion",
-    url: "https://script.google.com/macros/s/AKfycbzLD_apoepK6DnMOOww4SPts8HDYiXcPhITonGAVyyRiZ6y8EzysTmjoUzJeX7FQJ512A/exec",
+    topic: "Description of Motion",
+    url: "https://script.google.com/macros/s/AKfycby8z3emuwK7eYdUNgh1aO4Bi7XVouzJbwPj3lApaMf7O3zKOO86lk-ZWHi4v5nHQdEc6Q/exec",
     students: {
         "Teacher": "0000",
         "Tutor": "1111",
@@ -269,123 +269,73 @@ const CONFIG = {
 const QUESTIONS = [
     {
         id: 1,
-        text: "In Physics, why do we say that 'motion is relative'?",
-        options: [
-            "Because an object's speed depends entirely on its weight.",
-            "Because whether an object is at rest or in motion depends entirely on the chosen Frame of Reference.",
-            "Because an object in motion will eventually come to rest relative to gravity.",
-            "Because motion only occurs when a force is applied relative to the object."
-        ],
+        text: "The path followed by a moving particle is called its:",
+        options: ["Displacement", "Trajectory", "Velocity", "Reference frame"],
         correct: 1,
-        hint: "Think about sitting in a moving car. To the driver next to you, you are at rest. To a person standing on the sidewalk, you are moving."
+        hint: "It can be rectilinear (straight line) or curvilinear."
     },
     {
         id: 2,
-        text: "Which branch of mechanics describes <i>how</i> an object moves (its position, velocity, and acceleration) without considering the <i>forces</i> that caused the motion?",
-        options: [
-            "Dynamics",
-            "Statics",
-            "Kinematics",
-            "Thermodynamics"
-        ],
-        correct: 2,
-        hint: "Dynamics deals with forces (like tension, weight, friction). The other branch just describes the path and speed."
+        text: "Which of the following is an example of a rectilinear trajectory?",
+        options: ["A car turning a corner", "An apple falling from a tree", "The Earth orbiting the Sun", "A basketball being thrown"],
+        correct: 1,
+        hint: "Rectilinear means the path is a straight line."
     },
     {
         id: 3,
-        text: "A student walks 40 m East to the store, realizes they forgot their wallet, and walks 10 m West back toward their house. What is their total distance traveled (\\(d\\)) and their displacement (\\(\\Delta x\\)) from the start?",
-        options: [
-            "d = 30 m, Δx = +30 m",
-            "d = 50 m, Δx = +50 m",
-            "d = 50 m, Δx = +30 m",
-            "d = 30 m, Δx = +50 m"
-        ],
-        correct: 2,
-        hint: "Distance is the total steps taken (40 + 10). Displacement is the straight-line difference between the final position and initial position (40 - 10)."
+        text: "Average speed is defined as the ratio of:",
+        options: ["Total displacement to time", "Total distance to time", "Initial velocity to final velocity", "Change in velocity to time"],
+        correct: 1,
+        hint: "Speed is a scalar; it only considers total distance covered."
     },
     {
         id: 4,
-        text: "A car on the highway is traveling at \\(90 \\text{ km/h}\\). What is this speed converted to standard SI units (\\(\\text{m/s}\\))?",
-        options: [
-            "20 m/s",
-            "25 m/s",
-            "324 m/s",
-            "15 m/s"
-        ],
+        text: "A cyclist travels 30 km in 2 hours. What is their average speed?",
+        options: ["60 km/h", "15 km/h", "30 km/h", "28 km/h"],
         correct: 1,
-        hint: "To convert from km/h to m/s, you divide by 3.6. (Because 1 km = 1000m, and 1 hour = 3600s)."
+        hint: "Use the formula: \\(v = d / t\\)."
     },
     {
         id: 5,
-        text: "If an object moves with a constant velocity (\\(\\vec{v} = \\text{constant}\\)), what can we conclude about its acceleration (\\(\\vec{a}\\))?",
-        options: [
-            "The acceleration is constant but not zero.",
-            "The acceleration is increasing.",
-            "The acceleration is exactly zero.",
-            "The acceleration is negative."
-        ],
-        correct: 2,
-        hint: "Acceleration measures the <i>rate of change</i> of velocity. If the velocity doesn't change, what is the rate of change?"
+        text: "In Uniform Rectilinear Motion (URM), the velocity is:",
+        options: ["Increasing", "Decreasing", "Zero", "Constant"],
+        correct: 3,
+        hint: "'Uniform' means things stay the same."
     },
     {
         id: 6,
-        text: "An object's velocity vector \\(\\vec{v}\\) and acceleration vector \\(\\vec{a}\\) are pointing in <b>opposite</b> directions (meaning their dot product \\(\\vec{v} \\cdot \\vec{a} < 0\\)). What is the nature of the object's motion?",
-        options: [
-            "Uniform Rectilinear Motion",
-            "Accelerated Rectilinear Motion",
-            "Decelerated Rectilinear Motion",
-            "Curvilinear Motion"
-        ],
-        correct: 2,
-        hint: "If velocity is pushing you forward, but acceleration is pulling you backward, what happens to your speed?"
+        text: "Displacement is a ______ quantity, while distance is a ______ quantity.",
+        options: ["Scalar; Vector", "Vector; Scalar", "Large; Small", "Constant; Variable"],
+        correct: 1,
+        hint: "Displacement includes direction (the arrow from start to finish)."
     },
     {
         id: 7,
-        text: "<b>Calculation:</b> In a chronophotography recording with a time interval \\(\\tau = 0.1\\text{ s}\\), the positions of a mobile are \\(M_1\\), \\(M_2\\), and \\(M_3\\). The physical distance from \\(M_1\\) to \\(M_3\\) is measured to be \\(12\\text{ cm}\\). What is the instantaneous speed \\(v_2\\) at point \\(M_2\\) in m/s?",
-        options: [
-            "1.2 m/s",
-            "0.6 m/s",
-            "120 m/s",
-            "6.0 m/s"
-        ],
+        text: "The standard SI unit for velocity is:",
+        options: ["km/h", "m/s", "cm/s", "mph"],
         correct: 1,
-        hint: "Formula: \\(v_2 = \\frac{M_1 M_3}{2\\tau}\\). First, convert 12 cm to meters (0.12 m). Then divide by \\(2 \\times 0.1\\)."
+        hint: "Meters per second."
     },
     {
         id: 8,
-        text: "<b>Brain Stretcher:</b> A train travels \\(100\\text{ km}\\) in \\(2\\text{ hours}\\). It then stops at a station for \\(1\\text{ hour}\\). Finally, it travels another \\(50\\text{ km}\\) in \\(1\\text{ hour}\\). What is the average speed (\\(v_{av}\\)) for the <b>entire</b> journey?",
-        options: [
-            "50.0 km/h",
-            "37.5 km/h",
-            "75.0 km/h",
-            "30.0 km/h"
-        ],
-        correct: 1,
-        hint: "Average speed is TOTAL distance divided by TOTAL time. Do not forget to include the time spent stopped at the station in your total time!"
+        text: "To describe motion accurately, we must first choose a fixed object as a:",
+        options: ["Target", "Vector", "Reference Frame", "Distance"],
+        correct: 2,
+        hint: "Motion is relative; you need to know what you are moving relative to."
     },
     {
         id: 9,
-        text: "<b>Brain Stretcher:</b> In a 1D coordinate system, an object starts at position \\(x_i = -5\\text{ m}\\). It moves to position \\(x_f = 15\\text{ m}\\) in a duration of \\(\\Delta t = 4\\text{ s}\\). What is the average velocity of the object?",
-        options: [
-            "2.5 m/s",
-            "5.0 m/s",
-            "-5.0 m/s",
-            "10.0 m/s"
-        ],
-        correct: 1,
-        hint: "First find the displacement: \\(\\Delta x = x_f - x_i = 15 - (-5)\\). Then divide by the time \\(\\Delta t\\)."
+        text: "If a car travels from point A to B (100m) and then returns to A, its total displacement is:",
+        options: ["200 m", "100 m", "0 m", "-100 m"],
+        correct: 2,
+        hint: "Displacement is the difference between the final and initial position."
     },
     {
         id: 10,
-        text: "<b>Advanced Chronophotography:</b> A recording uses a time interval \\(\\tau = 1.0\\text{ s}\\). The positions on an x-axis are: \\(x_0 = 0\\text{ m}\\), \\(x_1 = 2\\text{ m}\\), \\(x_2 = 6\\text{ m}\\), \\(x_3 = 12\\text{ m}\\), \\(x_4 = 20\\text{ m}\\). Calculate the instantaneous acceleration \\(a_2\\) at point \\(x_2\\).",
-        options: [
-            "1 m/s²",
-            "2 m/s²",
-            "3 m/s²",
-            "4 m/s²"
-        ],
+        text: "Instantaneous speed is the speed of an object:",
+        options: ["Over a long interval", "At a specific moment in time", "At the very start of motion", "At the very end of motion"],
         correct: 1,
-        hint: "<b>Step 1:</b> Find \\(v_1\\) using \\(x_0\\) and \\(x_2\\).<br><b>Step 2:</b> Find \\(v_3\\) using \\(x_2\\) and \\(x_4\\).<br><b>Step 3:</b> Use the acceleration formula \\(a_2 = \\frac{v_3 - v_1}{2\\tau}\\)."
+        hint: "Think about the reading on a car's speedometer."
     }
 ];
 
@@ -420,7 +370,7 @@ function validateLogin() {
         currentUser = studentName;
         dom.login.classList.add('hidden');
         dom.quiz.classList.remove('hidden');
-        dom.studentName.innerText = studentName.split('/')[0]; // First name only for UI
+        dom.studentName.innerText = studentName.split('/')[0];
         loadQuestion(0);
     } else {
         dom.errorMsg.classList.remove('hidden');
@@ -432,17 +382,14 @@ function loadQuestion(index) {
     currentQIndex = index;
     const q = QUESTIONS[index];
     
-    // Update UI Stats
     dom.progress.style.width = `${((index + 1) / QUESTIONS.length) * 100}%`;
     dom.currQNum.innerText = index + 1;
     
-    // Reset Hint
     dom.hintBox.classList.add('hidden');
-    dom.hintBox.innerHTML = `<em>💡 Hint:</em> ${q.hint}`;
+    dom.hintBox.innerText = q.hint;
 
-    // Build HTML
     let html = `
-        <h2 class="text-xl font-bold mb-4" style="line-height: 1.6;">${q.text}</h2>
+        <h2 class="text-xl font-bold mb-4">${q.text}</h2>
         <div class="flex flex-col gap-2">
     `;
 
@@ -451,7 +398,7 @@ function loadQuestion(index) {
         html += `
             <div class="option-card ${isSelected}" onclick="selectOption(${i}, this)">
                 <div class="option-letter">${String.fromCharCode(65+i)}</div>
-                <div style="width: 100%;">${opt}</div>
+                <div>${opt}</div>
             </div>
         `;
     });
@@ -459,7 +406,6 @@ function loadQuestion(index) {
 
     dom.qContainer.innerHTML = html;
     
-    // Button Logic
     dom.btnPrev.classList.toggle('hidden', index === 0);
     if (index === QUESTIONS.length - 1) {
         dom.btnNext.classList.add('hidden');
@@ -469,18 +415,11 @@ function loadQuestion(index) {
         dom.btnSubmit.classList.add('hidden');
     }
 
-    // Retrigger MathJax after injecting dynamic content for both Question AND Hint containers
-    if (window.MathJax) {
-        MathJax.typesetPromise([dom.qContainer, dom.hintBox]).catch(function (err) {
-            console.log('MathJax error: ', err.message);
-        });
-    }
+    if (window.MathJax) MathJax.typeset();
 }
 
 function selectOption(optIndex, cardElem) {
     userAnswers[currentQIndex] = optIndex;
-    
-    // Visual update
     const allOptions = document.querySelectorAll('.option-card');
     allOptions.forEach(el => el.classList.remove('selected'));
     cardElem.classList.add('selected');
@@ -504,10 +443,6 @@ function toggleTheme() {
 }
 
 async function submitQuiz() {
-    // Prevent multiple submissions
-    dom.btnSubmit.disabled = true;
-    dom.btnSubmit.innerText = "Submitting...";
-
     // Calculate Score
     let correctCount = 0;
     let details = [];
