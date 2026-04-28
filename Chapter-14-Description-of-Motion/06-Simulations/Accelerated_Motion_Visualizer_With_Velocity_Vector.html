@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1D Kinematics Visualizer & Calculator</title>
+    
+    <!-- Tailwind CSS with Dark Mode Config -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- KaTeX for Math Rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <!-- KaTeX Auto-Render Extension (fixes inline $ math $) -->
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+    <style>
+        body { transition: background-color 0.3s, color 0.3s; }
+        .ruler-tick { position: absolute; bottom: 0; width: 1px; background-color: #374151; }
+        .dark .ruler-tick { background-color: #9ca3af; }
+        .tick-major { height: 15px; width: 2px; }
+        .tick-minor { height: 7px; }
+        .tick-half { height: 10px; }
+        
+        .point-dot { 
+            position: absolute; 
+            bottom: 14px; 
+            width: 12px; 
+            height: 12px; 
+            background-color: #3b82f6; 
+            border-radius: 50%; 
+            transform: translateX(-50%);
+            box-shadow: 0 0 0 2px white;
+            z-index: 10;
+        }
+        .dark .point-dot { box-shadow: 0 0 0 2px #1f2937; }
+        
+        .point-label {
+            position: absolute;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+        .dark .point-label { color: #93c5fd; }
+
+        /* Velocity Vector Styles */
+        .velocity-vector {
+            position: absolute;
+            bottom: 36px;
+            height: 2px;
+            background-color: #d97706; /* amber-600 */
+            transform-origin: left center;
+            z-index: 15;
+            transition: width 0.3s ease;
+        }
+        .dark .velocity-vector { background-color: #fbbf24; /* amber-400 */ }
+        
+        .velocity-vector::after {
+            content: '';
+            position: absolute;
+            right: -6px;
+            top: -4px;
+            border-top: 5px solid transparent;
+            border-bottom: 5px solid transparent;
+            border-left: 8px solid #d97706;
+        }
+        .dark .velocity-vector::after { border-left-color: #fbbf24; }
+        
+        .velocity-label {
+            position: absolute;
+            bottom: 42px;
+            font-size: 0.8rem;
+            color: #d97706;
+            transform: translateX(-50%);
+            z-index: 15;
+        }
+        .dark .velocity-label { color: #fbbf24; }
+        
+        #animated-particle {
+            position: absolute;
+            bottom: 14px;
+            width: 16px;
+            height: 16px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 8px #ef4444;
+            z-index: 20;
+            display: none;
+            transition: left 0.5s linear;
+        }
+
+        .bracket-container {
+            position: absolute;
+            bottom: 60px;
+            height: 20px;
+            border-top: 2px solid;
+            border-left: 2px solid;
+            border-right: 2px solid;
+            opacity: 0.8;
+            transition: all 0.3s ease;
+            display: none;
+            z-index: 5;
+        }
+        .bracket-label {
+            position: absolute;
+            top: -24px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .katex-display { margin: 0.5em 0 !important; }
+        .dark .katex { color: #f3f4f6; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 text-gray-800 bg-gray-100 dark:bg-gray-900 dark:text-gray-100 flex justify-center items-start">
+
+    <div class="max-w-5xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden transition-colors">
+        
+        <!-- Header -->
+        <div class="bg-blue-900 dark:bg-blue-950 text-white p-6 flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold flex items-center gap-3">
+                    <i class="fa-solid fa-ruler-horizontal"></i>
+                    Chronophotography Visualizer
+                </h1>
+                <p class="text-blue-200 mt-2 text-sm flex items-center gap-2">
+                    Interactive kinematics analysis. <span id="tau-display"></span>
+                </p>
+                <p class="text-blue-300 mt-1 text-sm font-medium italic">By Rabih A.G.</p>
+            </div>
+            
+            <div class="flex items-center gap-4 bg-blue-800 dark:bg-blue-900 p-3 rounded-lg border border-blue-700">
+                <div class="flex items-center gap-2">
+                    <label for="input-tau" class="text-sm font-semibold text-blue-100 whitespace-nowrap">
+                        <i class="fa-solid fa-stopwatch"></i> $\tau$ (ms):
+                    </label>
+                    <input type="number" id="input-tau" value="50" min="1" step="1" 
+                           class="w-20 px-2 py-1 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm outline-none border border-transparent focus:border-blue-300 transition-colors text-center">
+                </div>
+                <div class="w-px h-6 bg-blue-700 mx-1"></div>
+                <button id="theme-toggle" class="p-2 w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors" title="Toggle Theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Visualization Section -->
+        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Trajectory Mapping (Speeding Up)</h2>
+                <div class="flex items-center gap-4 flex-wrap">
+                    
+                    <!-- Vector Toggle -->
+                    <label class="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors">
+                        <input type="checkbox" id="toggle-vectors" class="w-4 h-4 text-amber-600 rounded border-gray-300 focus:ring-amber-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer">
+                        <i class="fa-solid fa-arrow-right-long text-amber-500"></i> Show Vectors
+                    </label>
+
+                    <div class="hidden md:block w-px h-5 bg-gray-300 dark:bg-gray-600"></div>
+
+                    <!-- Play Controls -->
+                    <div class="flex gap-2">
+                        <button id="btn-play" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-play"></i> Play
+                        </button>
+                        <button id="btn-reset" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                            <i class="fa-solid fa-rotate-left"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ruler Container -->
+            <div class="relative w-full h-36 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 mb-2 px-4 transition-colors">
+                <div id="ruler-track" class="relative w-full h-full">
+                    
+                    <!-- Brackets -->
+                    <div id="avg-bracket" class="bracket-container border-blue-500 text-blue-600 dark:text-blue-400">
+                        <div class="bracket-label">Average Speed Interval</div>
+                    </div>
+                    <div id="inst-bracket" class="bracket-container border-red-500 text-red-600 dark:text-red-400">
+                        <div class="bracket-label">Central Difference Interval</div>
+                    </div>
+
+                    <!-- Base ruler line -->
+                    <div id="ruler-base" class="absolute bottom-0 left-0 w-full h-1 bg-gray-800 dark:bg-gray-400"></div>
+                    <div id="animated-particle"></div>
+                </div>
+            </div>
+            <div class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2 italic">Scale represents 0 to 15 cm</div>
+        </div>
+
+        <!-- Calculators Section (Speeds) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-0 border-b border-gray-100 dark:border-gray-700">
+            
+            <!-- Average Speed -->
+            <div class="p-6 border-r border-gray-100 dark:border-gray-700" onmouseenter="focusBracket('avg')" onmouseleave="unfocusBrackets()">
+                <div class="flex items-center gap-2 mb-4 text-blue-700 dark:text-blue-400">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <h3 class="font-bold text-lg">Average Speed</h3>
+                </div>
+                
+                <div class="flex gap-4 mb-6">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Start</label>
+                        <select id="avg-start" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="0">A0 (0 cm)</option>
+                            <option value="1" selected>A1 (0.5 cm)</option>
+                            <option value="2">A2 (1.5 cm)</option>
+                            <option value="3">A3 (3.0 cm)</option>
+                            <option value="4">A4 (5.0 cm)</option>
+                            <option value="5">A5 (7.5 cm)</option>
+                            <option value="6">A6 (10.5 cm)</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">End</label>
+                        <select id="avg-end" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="1">A1 (0.5 cm)</option>
+                            <option value="2">A2 (1.5 cm)</option>
+                            <option value="3">A3 (3.0 cm)</option>
+                            <option value="4">A4 (5.0 cm)</option>
+                            <option value="5">A5 (7.5 cm)</option>
+                            <option value="6" selected>A6 (10.5 cm)</option>
+                            <option value="7">A7 (14.0 cm)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800/50 min-h-[160px] flex items-center justify-center overflow-x-auto">
+                    <div id="formula-avg"></div>
+                </div>
+            </div>
+
+            <!-- Instantaneous Speed -->
+            <div class="p-6" onmouseenter="focusBracket('inst')" onmouseleave="unfocusBrackets()">
+                <div class="flex items-center gap-2 mb-4 text-red-700 dark:text-red-400">
+                    <i class="fa-solid fa-bolt"></i>
+                    <h3 class="font-bold text-lg">Instantaneous Speed</h3>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Target Point</label>
+                    <select id="inst-target" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-red-500 outline-none">
+                        <option value="1">A1 (t = 1τ)</option>
+                        <option value="2">A2 (t = 2τ)</option>
+                        <option value="3" selected>A3 (t = 3τ)</option>
+                        <option value="4">A4 (t = 4τ)</option>
+                        <option value="5">A5 (t = 5τ)</option>
+                        <option value="6">A6 (t = 6τ)</option>
+                    </select>
+                    <p class="text-[10px] text-gray-400 mt-1">Uses central difference ($v_i = \frac{\Delta x}{2\tau}$). Requires adjacent points.</p>
+                </div>
+
+                <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-100 dark:border-red-800/50 min-h-[160px] flex items-center justify-center overflow-x-auto">
+                    <div id="formula-inst"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calculators Section (Accelerations) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-0">
+            
+            <!-- Average Acceleration -->
+            <div class="p-6 border-r border-gray-100 dark:border-gray-700">
+                <div class="flex items-center gap-2 mb-4 text-emerald-700 dark:text-emerald-400">
+                    <i class="fa-solid fa-rocket"></i>
+                    <h3 class="font-bold text-lg">Average Acceleration</h3>
+                </div>
+                
+                <div class="flex gap-4 mb-6">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Start Speed</label>
+                        <select id="accel-avg-start" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <option value="1" selected>v1 (at A1)</option>
+                            <option value="2">v2 (at A2)</option>
+                            <option value="3">v3 (at A3)</option>
+                            <option value="4">v4 (at A4)</option>
+                            <option value="5">v5 (at A5)</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">End Speed</label>
+                        <select id="accel-avg-end" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <option value="2">v2 (at A2)</option>
+                            <option value="3">v3 (at A3)</option>
+                            <option value="4">v4 (at A4)</option>
+                            <option value="5">v5 (at A5)</option>
+                            <option value="6" selected>v6 (at A6)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-100 dark:border-emerald-800/50 min-h-[160px] flex items-center justify-center overflow-x-auto">
+                    <div id="formula-accel-avg"></div>
+                </div>
+            </div>
+
+            <!-- Instantaneous Acceleration -->
+            <div class="p-6">
+                <div class="flex items-center gap-2 mb-4 text-purple-700 dark:text-purple-400">
+                    <i class="fa-solid fa-meteor"></i>
+                    <h3 class="font-bold text-lg">Instantaneous Acceleration</h3>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Target Point</label>
+                    <select id="accel-inst-target" class="w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 rounded-md p-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                        <option value="2">A2 (t = 2τ)</option>
+                        <option value="3" selected>A3 (t = 3τ)</option>
+                        <option value="4">A4 (t = 4τ)</option>
+                        <option value="5">A5 (t = 5τ)</option>
+                    </select>
+                    <p class="text-[10px] text-gray-400 mt-1">Requires known instantaneous speeds at adjacent points ($v_{i-1}$ and $v_{i+1}$).</p>
+                </div>
+
+                <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-100 dark:border-purple-800/50 min-h-[160px] flex items-center justify-center overflow-x-auto">
+                    <div id="formula-accel-inst"></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Data Configuration
+        const POINTS = [
+            { id: 0, x: 0.0 },
+            { id: 1, x: 0.5 },
+            { id: 2, x: 1.5 },
+            { id: 3, x: 3.0 },
+            { id: 4, x: 5.0 },
+            { id: 5, x: 7.5 },
+            { id: 6, x: 10.5 },
+            { id: 7, x: 14.0 }
+        ];
+        const MAX_X = 15; // Ruler max value cm
+
+        let TAU = 0.05; // Base value in seconds
+
+        // Core Elements
+        const track = document.getElementById('ruler-track');
+        const particle = document.getElementById('animated-particle');
+        
+        // Form Elements
+        const tauInput = document.getElementById('input-tau');
+        const avgStartSelect = document.getElementById('avg-start');
+        const avgEndSelect = document.getElementById('avg-end');
+        const instTargetSelect = document.getElementById('inst-target');
+        
+        const accelAvgStartSelect = document.getElementById('accel-avg-start');
+        const accelAvgEndSelect = document.getElementById('accel-avg-end');
+        const accelInstTargetSelect = document.getElementById('accel-inst-target');
+
+        const avgBracket = document.getElementById('avg-bracket');
+        const instBracket = document.getElementById('inst-bracket');
+        const vectorToggle = document.getElementById('toggle-vectors');
+
+        let isAnimating = false;
+        let animationTimeout;
+        const SLOW_MO_MULTIPLIER = 10; // Physics timescale visually slowed down
+
+        // KaTeX Helper
+        function renderMath(elementId, latexStr) {
+            const el = document.getElementById(elementId);
+            if(el) katex.render(latexStr, el, { displayMode: true, throwOnError: false });
+        }
+
+        function updateTauDisplay() {
+            katex.render(`\\tau = ${tauInput.value}\\text{ ms}`, document.getElementById('tau-display'), {throwOnError: false});
+        }
+
+        // Draw visual ruler map
+        function drawRuler() {
+            track.querySelectorAll('.ruler-tick, .point-dot, .point-label').forEach(e => e.remove());
+
+            for(let i = 0; i <= MAX_X * 10; i++) {
+                const tick = document.createElement('div');
+                tick.className = 'ruler-tick';
+                tick.style.left = `${(i / (MAX_X * 10)) * 100}%`;
+                
+                if (i % 10 === 0) {
+                    tick.classList.add('tick-major');
+                    const label = document.createElement('div');
+                    label.textContent = i / 10;
+                    label.style.position = 'absolute';
+                    label.style.bottom = '18px';
+                    label.style.left = `${(i / (MAX_X * 10)) * 100}%`;
+                    label.style.transform = 'translateX(-50%)';
+                    label.style.fontSize = '0.75rem';
+                    label.className = 'text-gray-600 dark:text-gray-400';
+                    track.appendChild(label);
+                } else if (i % 5 === 0) {
+                    tick.classList.add('tick-half');
+                } else {
+                    tick.classList.add('tick-minor');
+                }
+                track.appendChild(tick);
+            }
+
+            POINTS.forEach(pt => {
+                const ptEl = document.createElement('div');
+                ptEl.className = 'point-dot';
+                ptEl.style.left = `${(pt.x / MAX_X) * 100}%`;
+                
+                const labelEl = document.createElement('div');
+                labelEl.className = 'point-label';
+                labelEl.textContent = `A${pt.id}`;
+                labelEl.style.left = `${(pt.x / MAX_X) * 100}%`;
+
+                track.appendChild(ptEl);
+                track.appendChild(labelEl);
+            });
+        }
+
+        // Draw Velocity Vectors Over Points
+        function drawVectors() {
+            // Remove existing vectors before redrawing
+            track.querySelectorAll('.velocity-vector, .velocity-label').forEach(e => e.remove());
+            
+            const showVectors = vectorToggle.checked;
+            const displayStyle = showVectors ? 'block' : 'none';
+
+            for (let i = 1; i < POINTS.length - 1; i++) {
+                const pt_prev = POINTS[i - 1];
+                const pt_next = POINTS[i + 1];
+                // Calculate speed in cm/s for dynamic scaling
+                const v_cm_s = (pt_next.x - pt_prev.x) / (2 * TAU);
+                
+                const vec = document.createElement('div');
+                vec.className = 'velocity-vector';
+                vec.style.left = `${(POINTS[i].x / MAX_X) * 100}%`;
+                // Scale velocity to visual width
+                vec.style.width = `${Math.min(v_cm_s * 0.15, 20)}%`; 
+                vec.style.display = displayStyle;
+
+                const lbl = document.createElement('div');
+                lbl.className = 'velocity-label';
+                lbl.style.left = `${(POINTS[i].x / MAX_X) * 100}%`;
+                lbl.style.display = displayStyle;
+
+                track.appendChild(vec);
+                track.appendChild(lbl);
+                
+                // Render math inside the label container
+                katex.render(`\\vec{v}_{${i}}`, lbl, {throwOnError: false});
+            }
+        }
+
+        // Handle Vector Toggle Switch
+        vectorToggle.addEventListener('change', (e) => {
+            const display = e.target.checked ? 'block' : 'none';
+            track.querySelectorAll('.velocity-vector, .velocity-label').forEach(el => {
+                el.style.display = display;
+            });
+        });
+
+        // --- Kinematics Math Functions ---
+
+        // Helper: Calculate Instantaneous Speed (v_i) using central difference
+        function getInstSpeed(idx) {
+            if (idx <= 0 || idx >= POINTS.length - 1) return null;
+            const dx_m = (POINTS[idx+1].x - POINTS[idx-1].x) / 100;
+            const dt_s = 2 * TAU;
+            return dx_m / dt_s;
+        }
+
+        function updateAverageSpeedCalc() {
+            let startIdx = parseInt(avgStartSelect.value);
+            let endIdx = parseInt(avgEndSelect.value);
+
+            if (startIdx >= endIdx) {
+                if (startIdx < POINTS.length - 1) endIdx = startIdx + 1, avgEndSelect.value = endIdx;
+                else startIdx = endIdx - 1, avgStartSelect.value = startIdx;
+            }
+
+            const x_start = POINTS[startIdx].x;
+            const x_end = POINTS[endIdx].x;
+            const dx_cm = (x_end - x_start).toFixed(2);
+            const dx_m = (dx_cm / 100).toFixed(4);
+            const dt_steps = endIdx - startIdx;
+            const dt_s = (dt_steps * TAU).toFixed(3);
+            const v = (dx_m / dt_s).toFixed(3);
+
+            const latex = `
+            \\begin{aligned}
+            v_{avg} &= \\frac{\\Delta x}{\\Delta t} = \\frac{x_{${endIdx}} - x_{${startIdx}}}{t_{${endIdx}} - t_{${startIdx}}} \\\\[1ex]
+            &= \\frac{${dx_m}\\text{ m}}{${dt_steps} \\times ${TAU}\\text{ s}} = \\mathbf{${v}\\text{ m/s}}
+            \\end{aligned}`;
+            renderMath('formula-avg', latex);
+
+            // Bracket logic
+            const leftPct = (x_start / MAX_X) * 100;
+            const widthPct = ((x_end - x_start) / MAX_X) * 100;
+            avgBracket.style.left = `${leftPct}%`;
+            avgBracket.style.width = `${widthPct}%`;
+        }
+
+        function updateInstSpeedCalc() {
+            const idx = parseInt(instTargetSelect.value);
+            const pt_prev = POINTS[idx - 1];
+            const pt_next = POINTS[idx + 1];
+
+            const dx_cm = (pt_next.x - pt_prev.x).toFixed(2);
+            const dx_m = (dx_cm / 100).toFixed(4);
+            const dt_s = (2 * TAU).toFixed(3);
+            const v = (dx_m / dt_s).toFixed(3);
+
+            const latex = `
+            \\begin{aligned}
+            v_{${idx}} &= \\frac{x_{${idx+1}} - x_{${idx-1}}}{2\\tau} \\\\[1ex]
+            &= \\frac{${dx_m}\\text{ m}}{2 \\times ${TAU}\\text{ s}} = \\mathbf{${v}\\text{ m/s}}
+            \\end{aligned}`;
+            renderMath('formula-inst', latex);
+
+            const leftPct = (pt_prev.x / MAX_X) * 100;
+            const widthPct = ((pt_next.x - pt_prev.x) / MAX_X) * 100;
+            instBracket.style.left = `${leftPct}%`;
+            instBracket.style.width = `${widthPct}%`;
+        }
+
+        function updateAverageAccelCalc() {
+            let startIdx = parseInt(accelAvgStartSelect.value);
+            let endIdx = parseInt(accelAvgEndSelect.value);
+
+            if (startIdx >= endIdx) {
+                if (startIdx < 5) endIdx = startIdx + 1, accelAvgEndSelect.value = endIdx;
+                else startIdx = endIdx - 1, accelAvgStartSelect.value = startIdx;
+            }
+
+            const v_start = getInstSpeed(startIdx);
+            const v_end = getInstSpeed(endIdx);
+            
+            const dt_steps = endIdx - startIdx;
+            const dt_s = (dt_steps * TAU).toFixed(3);
+            const a = ((v_end - v_start) / (dt_steps * TAU)).toFixed(3);
+
+            const latex = `
+            \\begin{aligned}
+            a_{avg} &= \\frac{\\Delta v}{\\Delta t} = \\frac{v_{${endIdx}} - v_{${startIdx}}}{t_{${endIdx}} - t_{${startIdx}}} \\\\[1ex]
+            &= \\frac{${v_end.toFixed(3)} - ${v_start.toFixed(3)}\\text{ m/s}}{${dt_steps} \\times ${TAU}\\text{ s}} = \\mathbf{${a}\\text{ m/s}^2}
+            \\end{aligned}`;
+            renderMath('formula-accel-avg', latex);
+        }
+
+        function updateInstAccelCalc() {
+            const idx = parseInt(accelInstTargetSelect.value);
+            
+            const v_prev = getInstSpeed(idx - 1);
+            const v_next = getInstSpeed(idx + 1);
+            
+            const dt_s = (2 * TAU).toFixed(3);
+            const a = ((v_next - v_prev) / (2 * TAU)).toFixed(3);
+
+            const latex = `
+            \\begin{aligned}
+            a_{${idx}} &= \\frac{v_{${idx+1}} - v_{${idx-1}}}{2\\tau} \\\\[1ex]
+            &= \\frac{${v_next.toFixed(3)} - ${v_prev.toFixed(3)}\\text{ m/s}}{2 \\times ${TAU}\\text{ s}} = \\mathbf{${a}\\text{ m/s}^2}
+            \\end{aligned}`;
+            renderMath('formula-accel-inst', latex);
+        }
+
+        function updateAllCalculators() {
+            updateAverageSpeedCalc();
+            updateInstSpeedCalc();
+            updateAverageAccelCalc();
+            updateInstAccelCalc();
+            drawVectors();
+        }
+
+        // Bracket Highlighting
+        function focusBracket(type) {
+            avgBracket.style.display = type === 'avg' ? 'block' : 'none';
+            instBracket.style.display = type === 'inst' ? 'block' : 'none';
+        }
+        function unfocusBrackets() {
+            avgBracket.style.display = 'none';
+            instBracket.style.display = 'none';
+        }
+
+        // Animation Logic
+        function playAnimation() {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            particle.style.display = 'block';
+            particle.style.transition = 'none';
+            particle.style.left = `${(POINTS[0].x / MAX_X) * 100}%`;
+            
+            // Slow motion based on actual tau
+            const stepDuration = TAU * 1000 * SLOW_MO_MULTIPLIER; 
+            let currentStep = 0;
+
+            function animateNextStep() {
+                if (currentStep >= POINTS.length - 1) {
+                    isAnimating = false;
+                    setTimeout(() => { particle.style.display = 'none'; }, 1000);
+                    return;
+                }
+                currentStep++;
+                requestAnimationFrame(() => {
+                    particle.style.transition = `left ${stepDuration}ms linear`;
+                    particle.style.left = `${(POINTS[currentStep].x / MAX_X) * 100}%`;
+                });
+                animationTimeout = setTimeout(animateNextStep, stepDuration);
+            }
+            setTimeout(animateNextStep, 50);
+        }
+
+        function resetAnimation() {
+            isAnimating = false;
+            clearTimeout(animationTimeout);
+            particle.style.transition = 'none';
+            particle.style.display = 'none';
+            particle.style.left = `${(POINTS[0].x / MAX_X) * 100}%`;
+        }
+
+        // --- Event Listeners ---
+        
+        // Theme Toggle
+        const themeBtn = document.getElementById('theme-toggle');
+        const htmlEl = document.documentElement;
+        themeBtn.addEventListener('click', () => {
+            htmlEl.classList.toggle('dark');
+            const isDark = htmlEl.classList.contains('dark');
+            themeBtn.innerHTML = isDark ? '<i class="fa-solid fa-sun text-yellow-300"></i>' : '<i class="fa-solid fa-moon"></i>';
+        });
+
+        // Tau Change
+        tauInput.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            if(val > 0) {
+                TAU = val / 1000;
+                updateTauDisplay();
+                updateAllCalculators();
+                if(isAnimating) resetAnimation();
+            }
+        });
+
+        // Calculators
+        avgStartSelect.addEventListener('change', () => { updateAverageSpeedCalc(); focusBracket('avg'); });
+        avgEndSelect.addEventListener('change', () => { updateAverageSpeedCalc(); focusBracket('avg'); });
+        instTargetSelect.addEventListener('change', () => { updateInstSpeedCalc(); focusBracket('inst'); });
+        accelAvgStartSelect.addEventListener('change', updateAverageAccelCalc);
+        accelAvgEndSelect.addEventListener('change', updateAverageAccelCalc);
+        accelInstTargetSelect.addEventListener('change', updateInstAccelCalc);
+        
+        document.getElementById('btn-play').addEventListener('click', playAnimation);
+        document.getElementById('btn-reset').addEventListener('click', resetAnimation);
+
+        // Init
+        window.addEventListener('DOMContentLoaded', () => {
+            updateTauDisplay();
+            drawRuler();
+            setTimeout(updateAllCalculators, 100); // slight delay for KaTeX
+            
+            // Check system preference for dark mode initially
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                htmlEl.classList.add('dark');
+                themeBtn.innerHTML = '<i class="fa-solid fa-sun text-yellow-300"></i>';
+            }
+
+            // Instruct KaTeX to auto-render inline math ($...$) in the document body
+            if (window.renderMathInElement) {
+                renderMathInElement(document.body, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ],
+                    throwOnError: false
+                });
+            }
+        });
+    </script>
+</body>
+</html>
