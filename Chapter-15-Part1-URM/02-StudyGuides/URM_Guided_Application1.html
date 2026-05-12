@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URM Quick Application</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans text-slate-800">
+    
+    <div class="max-w-2xl w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        
+        <!-- Header -->
+        <div class="bg-blue-600 p-6 text-white text-center relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none" 
+                 style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 20px 20px;">
+            </div>
+            <h1 class="text-2xl md:text-3xl font-bold mb-2 relative z-10">URM Quick Application</h1>
+            <p class="text-blue-100 text-sm md:text-base relative z-10">
+                A car moves at a constant speed of 80 km/h on a rectilinear path. How long does it take to travel 100 km?
+            </p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-100 h-2">
+            <div id="progressBar" class="bg-green-500 h-2 transition-all duration-500 ease-in-out" style="width: 0%;"></div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="mainContent" class="p-6 md:p-8 min-h-[400px] flex flex-col">
+            <!-- Content gets injected here via JS -->
+        </div>
+
+    </div>
+
+    <script>
+        // --- State ---
+        let currentStep = 0;
+        let selectedOption = null;
+        let inputValue = '';
+        let isCorrect = null;
+        let showExplanation = false;
+        let carPosition = 0;
+        let carInterval = null;
+
+        // --- Data ---
+        const steps = [
+            {
+                id: 0,
+                title: "Step 1: Nature of Motion",
+                question: "The problem states the car moves at a 'constant speed' on a 'rectilinear path'. What is the exact nature of this motion?",
+                type: "mcq",
+                options: [
+                    "Uniformly Accelerated Rectilinear Motion (UARM)",
+                    "Uniform Rectilinear Motion (URM)",
+                    "Uniform Circular Motion (UCM)"
+                ],
+                answer: "Uniform Rectilinear Motion (URM)",
+                explanation: "Correct! 'Rectilinear' gives the straight-line trajectory, and 'constant speed' means it is uniform."
+            },
+            {
+                id: 1,
+                title: "Step 2: Acceleration",
+                question: "Since the car is in Uniform Rectilinear Motion (URM) with a constant velocity, what is the value of its acceleration (a)?",
+                type: "mcq",
+                options: [
+                    "a > 0 (Positive acceleration)",
+                    "a < 0 (Deceleration)",
+                    "a = 0 m/s²"
+                ],
+                answer: "a = 0 m/s²",
+                explanation: "Spot on! In URM, the velocity does not change. Therefore, the acceleration is strictly zero."
+            },
+            {
+                id: 2,
+                title: "Step 3: Equation of Motion",
+                question: "Assuming the car starts its journey at the origin (x₀ = 0), which equation correctly represents its position (x) as a function of time (t)?",
+                type: "mcq",
+                options: [
+                    "x = ½ a·t² + v·t",
+                    "x = v · t",
+                    "x = a · t"
+                ],
+                answer: "x = v · t",
+                explanation: "Excellent! The general equation is x = v·t + x₀. Since x₀ = 0, it simplifies to x = v·t."
+            },
+            {
+                id: 3,
+                title: "Step 4: Solve the Problem",
+                question: "A car moves at a constant speed of 80 km/h. How long does it take to travel 100 km? (Enter your answer in hours)",
+                type: "input",
+                answer: "1.25",
+                placeholder: "e.g. 2.5",
+                explanation: "Great job! Using x = v·t, we isolate time: t = x / v. So, t = 100 km / 80 km/h = 1.25 hours."
+            }
+        ];
+
+        // --- Logic & Event Handlers ---
+        window.handleOptionSelect = (option) => {
+            if (isCorrect) return; // Prevent clicks after correct answer
+            
+            selectedOption = option;
+            const step = steps[currentStep];
+            
+            if (option === step.answer) {
+                isCorrect = true;
+                showExplanation = true;
+            } else {
+                isCorrect = false;
+                showExplanation = false;
+            }
+            render();
+        };
+
+        window.handleInputChange = (event) => {
+            inputValue = event.target.value;
+            isCorrect = null;
+            
+            // Only update the button state to avoid losing input focus from a full re-render
+            const checkBtn = document.getElementById('checkBtn');
+            if (checkBtn) {
+                checkBtn.disabled = inputValue.trim() === '';
+            }
+        };
+
+        window.checkInputAnswer = () => {
+            const normalizedInput = inputValue.trim().replace(',', '.');
+            if (normalizedInput === "1.25") {
+                isCorrect = true;
+                showExplanation = true;
+            } else {
+                isCorrect = false;
+                showExplanation = false;
+            }
+            render();
+        };
+
+        window.nextStep = () => {
+            currentStep++;
+            selectedOption = null;
+            inputValue = '';
+            isCorrect = null;
+            showExplanation = false;
+            render();
+            
+            if (currentStep === 4) {
+                startCarAnimation();
+            }
+        };
+
+        window.resetApp = () => {
+            currentStep = 0;
+            selectedOption = null;
+            inputValue = '';
+            isCorrect = null;
+            showExplanation = false;
+            carPosition = 0;
+            if (carInterval) clearInterval(carInterval);
+            render();
+        };
+
+        function startCarAnimation() {
+            carPosition = 0;
+            if (carInterval) clearInterval(carInterval);
+            
+            carInterval = setInterval(() => {
+                const carEl = document.getElementById('animatedCar');
+                const trailEl = document.getElementById('motionTrail');
+                
+                if (carPosition >= 100) {
+                    carPosition = 100;
+                    clearInterval(carInterval);
+                    if (trailEl) trailEl.classList.add('hidden');
+                } else {
+                    carPosition += 1;
+                    if (carPosition > 10 && trailEl) {
+                        trailEl.classList.remove('hidden');
+                    }
+                }
+                
+                if (carEl) {
+                    carEl.style.left = `calc(5% + ${carPosition * 0.8}%)`;
+                }
+            }, 20);
+        }
+
+        // --- Render Engine ---
+        function render() {
+            const container = document.getElementById('mainContent');
+            const progressBar = document.getElementById('progressBar');
+            
+            progressBar.style.width = `${(currentStep / 4) * 100}%`;
+
+            if (currentStep < 4) {
+                const step = steps[currentStep];
+                let html = `
+                    <h2 class="text-xl font-bold text-slate-700 mb-4 flex items-center">
+                        <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm mr-3">
+                            ${currentStep + 1} / 4
+                        </span>
+                        ${step.title}
+                    </h2>
+                    <p class="text-lg text-slate-600 mb-6 font-medium">
+                        ${step.question}
+                    </p>
+                `;
+
+                if (step.type === "mcq") {
+                    let optionsHtml = step.options.map(option => {
+                        const isSelected = selectedOption === option;
+                        let btnClass = 'border-slate-200 hover:border-blue-300 hover:bg-slate-50';
+                        let iconHtml = '';
+
+                        if (isSelected) {
+                            if (isCorrect) {
+                                btnClass = 'border-green-500 bg-green-50 cursor-default';
+                                iconHtml = '<i data-lucide="check-circle-2" class="text-green-500 w-6 h-6"></i>';
+                            } else {
+                                btnClass = 'border-red-500 bg-red-50';
+                                iconHtml = '<i data-lucide="x-circle" class="text-red-500 w-6 h-6"></i>';
+                            }
+                        } else if (isCorrect) {
+                            btnClass = 'border-slate-200 opacity-50 cursor-not-allowed';
+                        }
+
+                        // Escape single quotes if any existed in options (none do in this specific case, but good practice)
+                        const safeOption = option.replace(/'/g, "\\'");
+
+                        return `
+                            <button
+                                onclick="handleOptionSelect('${safeOption}')"
+                                ${isCorrect ? 'disabled' : ''}
+                                class="w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center justify-between ${btnClass}"
+                            >
+                                <span class="font-medium">${option}</span>
+                                ${isSelected ? iconHtml : ''}
+                            </button>
+                        `;
+                    }).join('');
+
+                    html += `<div class="space-y-3 flex-grow">${optionsHtml}</div>`;
+                }
+
+                if (step.type === "input") {
+                    const inputClass = isCorrect === true 
+                        ? 'border-green-500 bg-green-50' 
+                        : isCorrect === false 
+                            ? 'border-red-500 bg-red-50' 
+                            : 'border-slate-300 focus:border-blue-500';
+
+                    html += `
+                        <div class="flex-grow flex flex-col">
+                            <div class="flex space-x-4">
+                                <div class="relative flex-grow">
+                                    <input
+                                        type="text"
+                                        id="timeInput"
+                                        value="${inputValue}"
+                                        oninput="handleInputChange(event)"
+                                        ${isCorrect === true ? 'disabled' : ''}
+                                        placeholder="${step.placeholder}"
+                                        class="w-full p-4 text-lg border-2 rounded-xl focus:outline-none transition-all ${inputClass}"
+                                    />
+                                    <span class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">
+                                        hours
+                                    </span>
+                                </div>
+                                <button 
+                                    id="checkBtn"
+                                    onclick="checkInputAnswer()"
+                                    ${isCorrect || !inputValue ? 'disabled' : ''}
+                                    class="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                >
+                                    Check
+                                </button>
+                            </div>
+                            ${isCorrect === false ? `
+                                <p class="text-red-500 mt-3 flex items-center">
+                                    <i data-lucide="x-circle" class="w-5 h-5 mr-2"></i> Incorrect. Use the formula t = x / v.
+                                </p>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+
+                if (showExplanation) {
+                    html += `
+                        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl animate-fade-in flex flex-col md:flex-row justify-between items-start md:items-center">
+                            <div class="flex items-start mb-4 md:mb-0 pr-4">
+                                <i data-lucide="info" class="text-blue-600 w-6 h-6 mr-3 flex-shrink-0 mt-0.5"></i>
+                                <p class="text-blue-800">${step.explanation}</p>
+                            </div>
+                            <button
+                                onclick="nextStep()"
+                                class="flex-shrink-0 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg font-medium flex items-center transition-colors shadow-sm"
+                            >
+                                ${currentStep === 3 ? "Finish" : "Next Step"} 
+                                <i data-lucide="arrow-right" class="ml-2 w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = html;
+
+            } else {
+                // Success / Completion Screen
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center flex-grow text-center animate-fade-in">
+                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                            <i data-lucide="check-circle-2" class="w-12 h-12 text-green-600"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-slate-800 mb-2">Problem Solved!</h2>
+                        <p class="text-lg text-slate-600 mb-8 max-w-md">
+                            You correctly identified the URM nature, derived the equation <span class="font-mono bg-slate-100 px-1 rounded">x = 80t</span>, and solved for <span class="font-mono bg-slate-100 px-1 rounded">t = 1.25 h</span>.
+                        </p>
+
+                        <!-- Car Animation -->
+                        <div class="w-full max-w-md h-32 bg-slate-50 border-2 border-slate-200 rounded-xl relative overflow-hidden mb-8 shadow-inner">
+                            <div class="absolute bottom-4 left-0 w-full h-1 bg-slate-300"></div>
+                            <div class="absolute bottom-1 left-[5%] text-xs text-slate-400 font-mono">0 km</div>
+                            <div class="absolute bottom-1 right-[5%] text-xs text-slate-400 font-mono">100 km</div>
+                            
+                            <div id="animatedCar" class="absolute bottom-5 transition-all ease-linear" style="left: calc(5% + 0%);">
+                                <i data-lucide="car" class="w-10 h-10 text-blue-600"></i>
+                                <div id="motionTrail" class="absolute top-1/2 -left-4 w-3 h-0.5 bg-blue-300 rounded-full animate-pulse hidden"></div>
+                            </div>
+                        </div>
+
+                        <button onclick="resetApp()" class="flex items-center text-slate-500 hover:text-blue-600 font-medium transition-colors">
+                            <i data-lucide="rotate-ccw" class="w-5 h-5 mr-2"></i> Start Over
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Initialize Lucide icons for the newly injected HTML
+            lucide.createIcons();
+        }
+
+        // Initial Render
+        render();
+
+    </script>
+</body>
+</html>
